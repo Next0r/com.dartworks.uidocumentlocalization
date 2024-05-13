@@ -1,0 +1,3 @@
+.localization-data-editor__entries-field > ListView {
+  max-height: none;
+}

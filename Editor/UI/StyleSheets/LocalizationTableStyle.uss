@@ -1,0 +1,3 @@
+.localization-table__entries-field > ListView {
+  max-height: none;
+}

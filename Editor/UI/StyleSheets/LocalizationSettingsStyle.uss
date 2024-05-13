@@ -1,0 +1,16 @@
+.localization-settings {
+}
+
+.localization-settings__list-item {
+  flex-direction: row;
+  flex-grow: 1;
+}
+
+.localization-settings__list-item-text-field {
+  flex-grow: 1;
+  margin-right: 0px;
+}
+
+.localization-settings__list-view {
+  margin-top: 4px;
+}
