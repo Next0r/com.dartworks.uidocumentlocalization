@@ -2,13 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace UIDocumentLocalization
 {
-    public class LocalizationAsyncOperation
+    public abstract class LocalizationAsyncOperationBase
     {
-        public event Action completed;
-
         bool m_IsDone;
         float m_Progress;
         bool m_Cancelled;
@@ -30,24 +29,29 @@ namespace UIDocumentLocalization
             get => m_Cancelled;
         }
 
-        internal LocalizationAsyncOperation() { }
-
-        internal void InvokeCompleted()
-        {
-            completed?.Invoke();
-        }
-
         public void Cancel()
         {
             m_Cancelled = true;
         }
     }
 
-    public class LocalizationAsyncOperation<T> : LocalizationAsyncOperation
+    public class LocalizationAsyncOperation : LocalizationAsyncOperationBase
     {
-        public new event Action<T> completed;
+        public event Action completed;
 
-        internal LocalizationAsyncOperation() : base() { }
+        internal LocalizationAsyncOperation() { }
+
+        internal void InvokeCompleted()
+        {
+            completed?.Invoke();
+        }
+    }
+
+    public class LocalizationAsyncOperation<T> : LocalizationAsyncOperationBase
+    {
+        public event Action<T> completed;
+
+        internal LocalizationAsyncOperation() { }
 
         internal void InvokeCompleted(T result)
         {

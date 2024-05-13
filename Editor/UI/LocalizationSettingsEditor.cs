@@ -10,10 +10,11 @@ namespace UIDocumentLocalization
     [CustomEditor(typeof(LocalizationSettings))]
     class LocalizationSettingsEditor : Editor
     {
-        public const string ussClassName = "localization-settings";
-        public const string listViewUssClassName = ussClassName + "__list-view";
-        public const string listItemUssClassName = ussClassName + "__list-item";
-        public const string listItemTextFieldUssClassName = ussClassName + "__list-item-text-field";
+        const string k_UssClassName = "localization-settings";
+        const string k_ListViewUssClassName = k_UssClassName + "__list-view";
+        const string k_ListItemUssClassName = k_UssClassName + "__list-item";
+        const string k_ListItemTextFieldUssClassName = k_UssClassName + "__list-item-text-field";
+        const string k_StyleSheetPath = "Packages/com.dartworks.uidocumentlocalization/Editor/UI/StyleSheets/LocalizationSettingsStyle.uss";
 
         const float k_ListItemHeight = 20f;
 
@@ -48,10 +49,10 @@ namespace UIDocumentLocalization
             public ListItem()
             {
                 m_Root = new VisualElement();
-                m_Root.AddToClassList(listItemUssClassName);
+                m_Root.AddToClassList(k_ListItemUssClassName);
 
                 m_TextField = new TextField();
-                m_TextField.AddToClassList(listItemTextFieldUssClassName);
+                m_TextField.AddToClassList(k_ListItemTextFieldUssClassName);
                 m_Root.Add(m_TextField);
 
                 m_Toggle = new Toggle();
@@ -74,15 +75,15 @@ namespace UIDocumentLocalization
         public override VisualElement CreateInspectorGUI()
         {
             var root = new VisualElement();
-            root.AddToClassList(ussClassName);
+            root.AddToClassList(k_UssClassName);
             if (m_StyleSheet == null)
             {
-                m_StyleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.dartworks.uidocumentlocalization/Editor/UI/StyleSheets/LocalizationSettingsStyle.uss");
+                m_StyleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(k_StyleSheetPath);
                 root.styleSheets.Add(m_StyleSheet);
             }
 
             var listView = new ListView(settings.locales, k_ListItemHeight, MakeItem, BindItem);
-            listView.AddToClassList(listViewUssClassName);
+            listView.AddToClassList(k_ListViewUssClassName);
             listView.headerTitle = "Locales";
             listView.reorderable = true;
             listView.reorderMode = ListViewReorderMode.Animated;

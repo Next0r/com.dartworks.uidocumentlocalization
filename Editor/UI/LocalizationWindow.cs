@@ -11,9 +11,10 @@ namespace UIDocumentLocalization
 {
     class LocalizationWindow : EditorWindow
     {
-        public const string ussClassName = "localization-window";
-        public const string selectionContainerUssClassName = ussClassName + "__selection-container";
-        public const string hintBoxUssClassName = ussClassName + "__hint-box";
+        const string k_UssClassName = "localization-window";
+        const string k_SelectionContainerUssClassName = k_UssClassName + "__selection-container";
+        const string k_HintBoxUssClassName = k_UssClassName + "__hint-box";
+        const string k_StyleSheetPath = "Packages/com.dartworks.uidocumentlocalization/Editor/UI/StyleSheets/LocalizationWindowStyle.uss";
 
         VisualElement m_SelectionContainer;
         List<VisualElement> m_Selection;
@@ -38,7 +39,7 @@ namespace UIDocumentLocalization
             get => m_HintBox;
         }
 
-        [MenuItem("Test/Localization Window")]
+        [MenuItem("Window/UIDocument Localization/Localization Window")]
         public static void ShowWindow()
         {
             var window = GetWindow<LocalizationWindow>();
@@ -48,13 +49,13 @@ namespace UIDocumentLocalization
         public void CreateGUI()
         {
             var root = rootVisualElement;
-            root.AddToClassList(ussClassName);
+            root.AddToClassList(k_UssClassName);
 
-            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>("Packages/com.dartworks.uidocumentlocalization/Editor/UI/StyleSheets/LocalizationWindowStyle.uss");
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(k_StyleSheetPath);
             root.styleSheets.Add(styleSheet);
 
             m_SelectionContainer = new ScrollView();
-            m_SelectionContainer.AddToClassList(selectionContainerUssClassName);
+            m_SelectionContainer.AddToClassList(k_SelectionContainerUssClassName);
             root.Add(m_SelectionContainer);
 
             m_HintBox = new HintBox();

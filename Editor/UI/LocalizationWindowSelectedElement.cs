@@ -11,15 +11,14 @@ namespace UIDocumentLocalization
 {
     class LocalizationWindowSelectedElement : VisualElement
     {
-        public const string ussClassName = "selected-element";
-        public const string hintBoxUssClassName = ussClassName + "__hint-box";
+        const string k_UssClassName = "selected-element";
+        const string k_HintBoxUssClassName = k_UssClassName + "__hint-box";
 
         Label m_OverrideLabel;
         TextField m_NameTextField;
         LocalizationAddressElement m_AddressElement;
         Foldout m_BaseAddressFoldout;
         LocalizationAddressElement m_BaseAddressElement;
-        // Foldout m_OverridesFoldout;
 
         public string selectedElementName
         {
@@ -29,7 +28,7 @@ namespace UIDocumentLocalization
 
         public LocalizationWindowSelectedElement()
         {
-            AddToClassList(ussClassName);
+            AddToClassList(k_UssClassName);
 
             m_OverrideLabel = new Label { text = "Override" };
             m_OverrideLabel.style.display = DisplayStyle.None;
@@ -50,10 +49,6 @@ namespace UIDocumentLocalization
             m_BaseAddressElement.displayBorder = true;
             m_BaseAddressElement.displayVisualTreeAsset = true;
             m_BaseAddressFoldout.Add(m_BaseAddressElement);
-
-            // m_OverridesFoldout = new Foldout() { text = "Override Addresses" };
-            // m_OverridesFoldout.value = false;
-            // Add(m_OverridesFoldout);
         }
 
         public void BindProperty(SerializedProperty entrySp, int overrideIndex = -1)
@@ -72,23 +67,6 @@ namespace UIDocumentLocalization
             {
                 m_AddressElement.BindProperty(entrySp);
             }
-
-            // var overridesSp = entrySp.FindPropertyRelative("m_Overrides");
-            // for (int i = 0; i < overridesSp.arraySize; i++)
-            // {
-            //     if (i != overrideIndex)
-            //     {
-            //         var element = new LocalizationAddressElement();
-            //         element.BindProperty(overridesSp.FindPropertyRelative($"Array.data[{i}]"));
-            //         element.displayBorder = true;
-            //         element.displayVisualTreeAsset = true;
-            //         m_OverridesFoldout.Add(element);
-            //     }
-            // }
-
-            // m_OverridesFoldout.style.display = m_OverridesFoldout.childCount == 0
-            //     ? DisplayStyle.None
-            //     : DisplayStyle.Flex;
         }
     }
 }

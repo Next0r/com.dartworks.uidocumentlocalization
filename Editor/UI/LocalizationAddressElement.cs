@@ -13,10 +13,10 @@ namespace UIDocumentLocalization
 {
     class LocalizationAddressElement : VisualElement
     {
-        public const string ussClassName = "address-entry-element";
-        public const string leftBoxUssClassName = ussClassName + "__left-box";
-        public const string rightBoxUssClassName = ussClassName + "__right-box";
-        public const string borderVariantUssClassName = ussClassName + "--border";
+        const string k_UssClassName = "address-entry-element";
+        const string k_LeftBoxUssClassName = k_UssClassName + "__left-box";
+        const string k_RightBoxUssClassName = k_UssClassName + "__right-box";
+        const string k_BorderVariantUssClassName = k_UssClassName + "--border";
 
         const string k_NoKeyHintBoxMessage = "No match";
         const string k_SearchingHintBoxMessage = "Searching...";
@@ -38,11 +38,11 @@ namespace UIDocumentLocalization
                 m_DisplayBorder = value;
                 if (m_DisplayBorder)
                 {
-                    AddToClassList(borderVariantUssClassName);
+                    AddToClassList(k_BorderVariantUssClassName);
                 }
                 else
                 {
-                    RemoveFromClassList(borderVariantUssClassName);
+                    RemoveFromClassList(k_BorderVariantUssClassName);
                 }
             }
         }
@@ -59,10 +59,10 @@ namespace UIDocumentLocalization
 
         public LocalizationAddressElement()
         {
-            AddToClassList(ussClassName);
+            AddToClassList(k_UssClassName);
 
             var leftBox = new VisualElement() { name = "left-box" };
-            leftBox.AddToClassList(leftBoxUssClassName);
+            leftBox.AddToClassList(k_LeftBoxUssClassName);
             Add(leftBox);
 
             m_VisualTreeAsset = new ObjectField() { label = "Source Visual Tree", objectType = typeof(VisualTreeAsset) };
@@ -79,7 +79,7 @@ namespace UIDocumentLocalization
             leftBox.Add(m_KeyTextField);
 
             var rightBox = new VisualElement() { name = "right-box" };
-            rightBox.AddToClassList(rightBoxUssClassName);
+            rightBox.AddToClassList(k_RightBoxUssClassName);
             Add(rightBox);
 
             m_ClearButton = new Button() { text = "Clear" };
