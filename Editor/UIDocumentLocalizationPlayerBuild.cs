@@ -9,23 +9,23 @@ using UnityEngine;
 
 class UIDocumentLocalizationBuildPlayer : IPreprocessBuildWithReport, IPostprocessBuildWithReport
 {
-    LocalizationSettings m_Settings;
+    LocalizationConfigObject m_ConfigObject;
 
     public int callbackOrder => 0;
 
     /// <summary>
-    /// Before building a player make sure that localization settings instance is passed from editor build config
-    /// to preloaded assets, so LocalizationSettings.OnEnable gets called.
+    /// Before building a player make sure that config object is passed from editor build config
+    /// to preloaded assets, so it's OnEnable gets called.
     /// </summary>
     public void OnPreprocessBuild(BuildReport report)
     {
-        m_Settings = LocalizationSettings.instance;
-        if (m_Settings != null)
+        m_ConfigObject = LocalizationConfigObject.instance;
+        if (m_ConfigObject != null)
         {
             var preloadedAssets = PlayerSettings.GetPreloadedAssets().ToList();
-            if (!preloadedAssets.Contains(m_Settings))
+            if (!preloadedAssets.Contains(m_ConfigObject))
             {
-                preloadedAssets.Add(m_Settings);
+                preloadedAssets.Add(m_ConfigObject);
                 PlayerSettings.SetPreloadedAssets(preloadedAssets.ToArray());
             }
         }
@@ -33,16 +33,16 @@ class UIDocumentLocalizationBuildPlayer : IPreprocessBuildWithReport, IPostproce
     }
 
     /// <summary>
-    /// There is no need to keep localization settings in player after build is completed, so remove it here.
+    /// There is no need to keep config object in player after build is completed, so remove it here.
     /// </summary>
     public void OnPostprocessBuild(BuildReport report)
     {
         var preloadedAssets = PlayerSettings.GetPreloadedAssets().ToList();
-        if (m_Settings != null)
+        if (m_ConfigObject != null)
         {
-            preloadedAssets.Remove(m_Settings);
+            preloadedAssets.Remove(m_ConfigObject);
             PlayerSettings.SetPreloadedAssets(preloadedAssets.ToArray());
-            m_Settings = null;
+            m_ConfigObject = null;
         }
     }
 }

@@ -180,7 +180,7 @@ namespace UIDocumentLocalization
             AssetDatabase.CreateAsset(database, path);
             AssetDatabase.SaveAssets();
 
-            var settings = LocalizationSettings.instance;
+            var settings = LocalizationConfigObject.settings;
             if (settings != null && LocalizationSettings.database == null)
             {
                 LocalizationSettings.database = database;

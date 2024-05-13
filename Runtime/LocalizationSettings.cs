@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace UIDocumentLocalization
 {
+    [CreateAssetMenu(menuName = "UIDocument Localization/Settings", fileName = "Settings")]
     public class LocalizationSettings : ScriptableObject
     {
         public const string dataDirectory = "Assets/UIDocumentLocalization";
@@ -18,47 +19,20 @@ namespace UIDocumentLocalization
         [SerializeField] string m_SelectedLocale = null;
         [SerializeField] LocalizationData m_Database;
 
-        public static LocalizationSettings instance
-        {
-            get
-            {
-                if (s_Instance == null)
-                {
-#if UNITY_EDITOR
-                    if (!EditorBuildSettings.TryGetConfigObject(k_ConfigObjectName, out s_Instance))
-                    {
-                        if (!Directory.Exists(dataDirectory))
-                        {
-                            Directory.CreateDirectory(dataDirectory);
-                        }
-
-                        s_Instance = CreateInstance<LocalizationSettings>();
-                        AssetDatabase.CreateAsset(s_Instance, dataDirectory + "/LocalizationSettings.asset");
-                        AssetDatabase.SaveAssets();
-                        EditorBuildSettings.AddConfigObject(k_ConfigObjectName, s_Instance, true);
-                    }
-#else
-                    s_Instance = FindObjectOfType<LocalizationSettings>();
-                    if (s_Instance == null)
-                    {
-                        Debug.LogWarning("Failed to load localization settings, will use default.");
-                        s_Instance = CreateInstance<LocalizationSettings>();
-                    }
-#endif
-                }
-
-                return s_Instance;
-            }
-        }
-
         public static LocalizationData database
         {
-            get => instance?.m_Database;
+            get => LocalizationConfigObject.settings?.m_Database;
             set
             {
+                var settings = LocalizationConfigObject.settings;
+                if (settings == null)
+                {
+                    return;
+                }
+
                 if (value == null)
                 {
-                    instance.m_Database = null;
+                    settings.m_Database = null;
                     return;
                 }
 
@@ -71,29 +45,7 @@ namespace UIDocumentLocalization
                 }
 #endif
 
-                instance.m_Database = value;
-            }
-        }
-
-#if UNITY_EDITOR
-        [MenuItem("Test/Create Settings Asset")]
-        static void CreateSettingsAsset()
-        {
-            // Simply fire getter to generate settings asset.
-            var settings = instance;
-        }
-#endif
-
-        /// <summary>
-        /// OnEnable gets called when scriptable object is loaded by the player as preloaded asset. Preloaded asset is
-        /// actually the same scriptable object which is stored as editor build config file while in editor, and is passed
-        /// to player by UIDocumentLocalizationPlayerBuild class methods.
-        /// </summary>
-        void OnEnable()
-        {
-            if (s_Instance == null)
-            {
-                s_Instance = this;
+                settings.m_Database = value;
             }
         }
 
