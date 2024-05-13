@@ -10,6 +10,7 @@ using UnityEngine.UIElements;
 
 namespace UIDocumentLocalization
 {
+    [CreateAssetMenu(menuName = "UIDocument Localization/Database", fileName = "Database")]
     public class LocalizationData : ScriptableObject
     {
         public static EntriesComparer entriesComparer = new EntriesComparer();
@@ -166,42 +167,13 @@ namespace UIDocumentLocalization
         [SerializeField] List<Entry> m_Entries = new List<Entry>();
 
 #if UNITY_EDITOR
-        [MenuItem("Test/Create Database Asset")]
-        static void CreateDatabaseAsset()
-        {
-            if (!Directory.Exists(LocalizationSettings.dataDirectory))
-            {
-                Directory.CreateDirectory(LocalizationSettings.dataDirectory);
-            }
-
-            var database = CreateInstance<LocalizationData>();
-            var path = LocalizationSettings.dataDirectory + "/Database.asset";
-            path = AssetDatabase.GenerateUniqueAssetPath(path);
-            AssetDatabase.CreateAsset(database, path);
-            AssetDatabase.SaveAssets();
-
-            var settings = LocalizationConfigObject.settings;
-            if (settings != null && LocalizationSettings.database == null)
-            {
-                LocalizationSettings.database = database;
-                EditorUtility.SetDirty(settings);
-                AssetDatabase.SaveAssets();
-                Debug.LogFormat("Created new database at: '{0}'. It has been automatically attached to localization settings.", path);
-            }
-            else
-            {
-                Debug.LogFormat("Created new database at: '{0}'. You can now assign it to localization settings as active database.", path);
-            }
-        }
-
         void OnEnable()
         {
             // We are recreating references for override objects as these cannot be serialized.
             RebuildNonSerializedReferences();
         }
-
-
 #endif
+
         public void RebuildNonSerializedReferences()
         {
             foreach (var entry in m_Entries)
