@@ -27,9 +27,9 @@ namespace UIDocumentLocalization
             if (m_StyleSheet == null)
             {
                 m_StyleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(k_StyleSheetPath);
-                root.styleSheets.Add(m_StyleSheet);
             }
 
+            root.styleSheets.Add(m_StyleSheet);
             m_TextAssetField = new ObjectField()
             {
                 label = "TextAsset",

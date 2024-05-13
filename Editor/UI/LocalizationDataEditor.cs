@@ -27,8 +27,9 @@ class LocalizationDataEditor : Editor
         if (m_StyleSheet == null)
         {
             m_StyleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(k_StyleSheetPath);
-            root.styleSheets.Add(m_StyleSheet);
         }
+        
+        root.styleSheets.Add(m_StyleSheet);
 
         m_RebuildButton = new Button() { text = "Rebuild" };
         m_RebuildButton.schedule.Execute(HandleRebuildButtonEnabled).Every(k_RebuildButtonUpdateIntervalMs);

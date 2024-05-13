@@ -19,6 +19,7 @@ namespace UIDocumentLocalization
         VisualElement m_SelectionContainer;
         List<VisualElement> m_Selection;
         HintBox m_HintBox;
+        StyleSheet m_StyleSheet;
 
         public static LocalizationWindow activeWindow
         {
@@ -50,9 +51,12 @@ namespace UIDocumentLocalization
         {
             var root = rootVisualElement;
             root.AddToClassList(k_UssClassName);
-
-            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(k_StyleSheetPath);
-            root.styleSheets.Add(styleSheet);
+            if (m_StyleSheet == null)
+            {
+                m_StyleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(k_StyleSheetPath);
+            }
+            
+            root.styleSheets.Add(m_StyleSheet);
 
             m_SelectionContainer = new ScrollView();
             m_SelectionContainer.AddToClassList(k_SelectionContainerUssClassName);
