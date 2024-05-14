@@ -11,7 +11,7 @@ using UnityEngine.UIElements;
 namespace UIDocumentLocalization
 {
     [CreateAssetMenu(menuName = "UIDocument Localization/Database", fileName = "Database")]
-    public class LocalizationData : ScriptableObject
+    public class LocalizationData : ScriptableObject, ISerializationCallbackReceiver
     {
         public static EntriesComparer entriesComparer = new EntriesComparer();
 
@@ -164,6 +164,8 @@ namespace UIDocumentLocalization
             }
         }
 
+        public event Action onUpdated;
+
         [SerializeField] List<Entry> m_Entries = new List<Entry>();
 
 #if UNITY_EDITOR
@@ -251,6 +253,15 @@ namespace UIDocumentLocalization
         public int IndexOf(Entry entry)
         {
             return m_Entries.BinarySearch(entry, entriesComparer);
+        }
+
+        public void OnBeforeSerialize() { }
+
+        public void OnAfterDeserialize()
+        {
+#if UNITY_EDITOR
+            EditorApplication.delayCall += () => onUpdated?.Invoke();
+#endif
         }
     }
 }

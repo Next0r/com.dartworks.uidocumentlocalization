@@ -37,25 +37,25 @@ namespace UIDocumentLocalization
 
     public class LocalizationAsyncOperation : LocalizationAsyncOperationBase
     {
-        public event Action completed;
+        public event Action onCompleted;
 
         internal LocalizationAsyncOperation() { }
 
         internal void InvokeCompleted()
         {
-            completed?.Invoke();
+            onCompleted?.Invoke();
         }
     }
 
     public class LocalizationAsyncOperation<T> : LocalizationAsyncOperationBase
     {
-        public event Action<T> completed;
+        public event Action<T> onCompleted;
 
         internal LocalizationAsyncOperation() { }
 
         internal void InvokeCompleted(T result)
         {
-            completed?.Invoke(result);
+            onCompleted?.Invoke(result);
         }
     }
 }

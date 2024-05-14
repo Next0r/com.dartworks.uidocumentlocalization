@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -13,26 +14,23 @@ namespace UIDocumentLocalization
 
         const string k_ConfigObjectName = "com.dartworks.uidocumentlocalization";
 
-        static LocalizationSettings s_Instance;
+        public event DatabaseChangedCallback onDatabaseChanged;
+        public event LocaleChangedCallback onLocaleChanged;
 
         [SerializeField] List<string> m_Locales = new List<string>();
         [SerializeField] string m_SelectedLocale = null;
         [SerializeField] LocalizationData m_Database;
 
-        public static LocalizationData database
+        public LocalizationData database
         {
-            get => LocalizationConfigObject.settings?.m_Database;
+            get => m_Database;
             set
             {
-                var settings = LocalizationConfigObject.settings;
-                if (settings == null)
-                {
-                    return;
-                }
-
+                var previousDatabase = m_Database;
                 if (value == null)
                 {
-                    settings.m_Database = null;
+                    m_Database = null;
+                    onDatabaseChanged?.Invoke(previousDatabase, m_Database);
                     return;
                 }
 
@@ -45,9 +43,14 @@ namespace UIDocumentLocalization
                 }
 #endif
 
-                settings.m_Database = value;
+                m_Database = value;
+                onDatabaseChanged?.Invoke(previousDatabase, m_Database);
             }
         }
+
+        public delegate void DatabaseChangedCallback(LocalizationData previousDatabase, LocalizationData newDatabase);
+
+        public delegate void LocaleChangedCallback(string previousLocale, string newLocale);
 
         public List<string> locales
         {
@@ -58,7 +61,12 @@ namespace UIDocumentLocalization
         public string selectedLocale
         {
             get => m_SelectedLocale;
-            set => m_SelectedLocale = value;
+            set
+            {
+                var previousLocale = m_SelectedLocale;
+                m_SelectedLocale = value;
+                onLocaleChanged?.Invoke(previousLocale, m_SelectedLocale);
+            }
         }
 
         public int selectedLocaleIndex
@@ -68,7 +76,9 @@ namespace UIDocumentLocalization
             {
                 if (value >= 0 && value < locales.Count)
                 {
+                    var previousLocale = m_SelectedLocale;
                     m_SelectedLocale = locales[value];
+                    onLocaleChanged?.Invoke(previousLocale, m_SelectedLocale);
                 }
             }
         }

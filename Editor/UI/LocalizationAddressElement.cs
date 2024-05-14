@@ -102,7 +102,7 @@ namespace UIDocumentLocalization
 
             hintBox.ShowMessage(k_SearchingHintBoxMessage);
             m_AsyncOperation = localizationTable.GetMatchingKeysAsync(m_KeyTextField.value);
-            m_AsyncOperation.completed += (List<string> result) =>
+            m_AsyncOperation.onCompleted += (List<string> result) =>
             {
                 hintBox.hints = result;
                 if (!hintBox.hints.Any())

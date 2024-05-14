@@ -126,7 +126,7 @@ namespace UIDocumentLocalization
             listItem.textField.RegisterValueChangedCallback(evt =>
             {
                 var idx = (int)listItem.userData;
-                var selectedLocaleIndex = settings.selectedLocaleIndex; // Cache before locales update .
+                var selectedLocaleIndex = settings.selectedLocaleIndex; // Cache before locales update.
                 settings.locales[idx] = evt.newValue;
                 if (idx == selectedLocaleIndex)
                 {
@@ -147,6 +147,10 @@ namespace UIDocumentLocalization
                     }
 
                     listItem.toggleValue = true;
+                }
+                else
+                {
+                    listItem.toggleValue = true;    // Checkbox should work like a radio button.
                 }
 
                 settings.selectedLocale = listItem.textFieldValue;

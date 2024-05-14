@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
@@ -14,6 +16,8 @@ namespace UIDocumentLocalization
         const string k_ConfigObjectPath = dataDirectory + "/ConfigObject.asset";
 
         static LocalizationConfigObject s_Instance;
+
+        public static event SettingsChangedCallback onSettingsChanged;
 
         [SerializeField] LocalizationSettings m_Settings;
 
@@ -35,24 +39,24 @@ namespace UIDocumentLocalization
             }
         }
 
-        public static LocalizationSettings settings
+        public LocalizationSettings settings
         {
             get
             {
-                var settings = instance.m_Settings;
 #if !UNITY_EDITOR
-                if (settings == null)
+                if (m_Settings == null)
                 {
                     Debug.LogWarning("Settings asset does not exist. Temporary one will be created for this session.");
-                    settings = CreateInstance<LocalizationSettings>();
-                    instance.m_Settings = settings;
+                    m_Settings = CreateInstance<LocalizationSettings>();
                 }
 #endif
-                return settings;
+                return m_Settings;
             }
             set
             {
-                instance.m_Settings = value;
+                var previousSettings = m_Settings;
+                m_Settings = value;
+                onSettingsChanged?.Invoke(previousSettings, m_Settings);
             }
         }
 
@@ -85,6 +89,8 @@ namespace UIDocumentLocalization
             return configObject;
         }
 #endif
+
+        public delegate void SettingsChangedCallback(LocalizationSettings previousSettings, LocalizationSettings newSettings);
 
         void OnEnable()
         {

@@ -40,7 +40,7 @@ namespace UIDocumentLocalization
                     return string.Format("Table '{0}' does not contain '{1}' entry.", table.name, key);
                 }
 
-                var settings = LocalizationConfigObject.settings;
+                var settings = LocalizationConfigObject.instance.settings;
                 if (!entry.TryGetTranslation(settings.selectedLocaleIndex, out string translation))
                 {
                     return string.Format("Entry '{0}' in table '{1}' does not contain translation for locale '{2}'.", key, table.name, settings.selectedLocale);
@@ -64,7 +64,7 @@ namespace UIDocumentLocalization
                 return false;
             }
 
-            var settings = LocalizationConfigObject.settings;
+            var settings = LocalizationConfigObject.instance.settings;
             if (!entry.TryGetTranslation(settings.selectedLocaleIndex, out translation))
             {
                 return false;

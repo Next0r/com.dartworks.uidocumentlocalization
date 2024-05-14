@@ -14,7 +14,7 @@ namespace UIDocumentLocalization
     {
         public static void UpdateDatabase(List<TextElement> textElements, VisualTreeAsset activeVisualTreeAsset)
         {
-            var database = LocalizationSettings.database;
+            var database = LocalizationConfigObject.instance.settings.database;
             if (database == null)
             {
                 return;
@@ -76,7 +76,7 @@ namespace UIDocumentLocalization
 
         public static void RemoveUnusedOverrides(List<string> removedElementGuids)
         {
-            var database = LocalizationSettings.database;
+            var database = LocalizationConfigObject.instance.settings.database;
             if (database == null)
             {
                 return;
