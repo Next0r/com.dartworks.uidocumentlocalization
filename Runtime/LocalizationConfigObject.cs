@@ -10,14 +10,16 @@ namespace UIDocumentLocalization
 {
     public class LocalizationConfigObject : ScriptableObject
     {
+#if UNITY_EDITOR
         public const string dataDirectory = "Assets/UIDocumentLocalization";
 
         const string k_ConfigObjectName = "com.dartworks.uidocumentlocalization";
         const string k_ConfigObjectPath = dataDirectory + "/ConfigObject.asset";
+#endif
 
         static LocalizationConfigObject s_Instance;
 
-        public static event SettingsChangedCallback onSettingsChanged;
+        public event SettingsChangedCallback onSettingsChanged;
 
         [SerializeField] LocalizationSettings m_Settings;
 
@@ -31,7 +33,7 @@ namespace UIDocumentLocalization
                     s_Instance = GetOrCreateConfigObject();
 #else
                     Debug.LogWarning("Config Object does not exist. Temporary one will be created for this session.");
-                    s_Instance = CreateInstance<ConfigObject>();
+                    s_Instance = CreateInstance<LocalizationConfigObject>();
 #endif
                 }
 

@@ -197,5 +197,21 @@ namespace UIDocumentLocalization
                 return false;
             }
         }
+
+        public static int GetDescendantCount(this VisualElement ve)
+        {
+            int count = 0;
+            GetDescendantElementsRecursive(ve, ref count);
+            return count;
+        }
+
+        static void GetDescendantElementsRecursive(VisualElement ve, ref int count)
+        {
+            for (int i = 0; i < ve.hierarchy.childCount; i++)
+            {
+                count++;
+                GetDescendantElementsRecursive(ve.hierarchy[i], ref count);
+            }
+        }
     }
 }

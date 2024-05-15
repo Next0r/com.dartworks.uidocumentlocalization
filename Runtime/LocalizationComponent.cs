@@ -6,24 +6,18 @@ using UnityEngine.UIElements;
 
 namespace UIDocumentLocalization
 {
+    [DisallowMultipleComponent]
     [ExecuteAlways]
     public class LocalizationComponent : MonoBehaviour
     {
-        [SerializeField] bool m_EnableOnAwake;
-
         UIDocument m_UIDocument;
-        bool m_PreviousIsDirty;
-        IPanel m_Panel;
         LocalizationAsyncOperation m_AsyncOperation;
+        int m_PreviousDescendantCount;
 
         public UIDocument uiDocument
         {
             get => m_UIDocument;
-            set
-            {
-                m_UIDocument = value;
-                m_Panel = null;
-            }
+            set => m_UIDocument = value;
         }
 
         public LocalizationAsyncOperation asyncOperation
@@ -31,26 +25,9 @@ namespace UIDocumentLocalization
             get => m_AsyncOperation;
         }
 
-        IPanel panel
-        {
-            get
-            {
-                if (m_Panel == null)
-                {
-                    m_Panel = m_UIDocument?.rootVisualElement?.panel;
-                }
-
-                return m_Panel;
-            }
-        }
-
         void Awake()
         {
             uiDocument = GetComponent<UIDocument>();
-            if (Application.isPlaying)
-            {
-                enabled = m_EnableOnAwake;
-            }
 
 #if UNITY_EDITOR
             EditorUtility.SetDirty(this);   // Serialize component settings in edit mode.
@@ -60,26 +37,26 @@ namespace UIDocumentLocalization
 #if !UNITY_EDITOR
         /// <summary>
         /// Actual update will be used only in build. By default we will use editor application update
-        /// because of necessity of panel dirty pooling.
+        /// because of necessity of descendant count pooling.
         /// </summary>
         void Update()
         {
-            UpdatePanelIsDirty();
+            UpdateDescendantCount();
         }
 #endif
 
 #if UNITY_EDITOR
         void OnEnable()
         {
-            EditorApplication.update += UpdatePanelIsDirty;
-            LocalizationConfigObject.onSettingsChanged += OnSettingsChanged;
+            EditorApplication.update += UpdateDescendantCount;
+            LocalizationConfigObject.instance.onSettingsChanged += OnSettingsChanged;
             OnSettingsChanged(null, LocalizationConfigObject.instance.settings);
         }
 
         void OnDisable()
         {
-            EditorApplication.update -= UpdatePanelIsDirty;
-            LocalizationConfigObject.onSettingsChanged -= OnSettingsChanged;
+            EditorApplication.update -= UpdateDescendantCount;
+            LocalizationConfigObject.instance.onSettingsChanged -= OnSettingsChanged;
             var settings = LocalizationConfigObject.instance.settings;
             if (settings != null)
             {
@@ -91,6 +68,20 @@ namespace UIDocumentLocalization
                     database.onUpdated -= LocalizeDocument;
                 }
             }
+        }
+
+        [MenuItem("CONTEXT/UIDocument/Add Localization Component", true)]
+        static bool ValidateAddLocalizationComponent(MenuCommand command)
+        {
+            UIDocument uiDocument = (UIDocument)command.context;
+            return uiDocument.GetComponent<LocalizationComponent>() == null;
+        }
+
+        [MenuItem("CONTEXT/UIDocument/Add Localization Component")]
+        static void AddLocalizationComponent(MenuCommand command)
+        {
+            UIDocument uiDocument = (UIDocument)command.context;
+            Undo.AddComponent<LocalizationComponent>(uiDocument.gameObject);
         }
 #endif
 
@@ -129,20 +120,20 @@ namespace UIDocumentLocalization
             LocalizeDocument();
         }
 
-        void UpdatePanelIsDirty()
+        void UpdateDescendantCount()
         {
-            if (panel == null)
+            if (uiDocument?.rootVisualElement == null)
             {
                 return;
             }
 
-            bool isDirty = panel.isDirty;
-            if (m_PreviousIsDirty && !isDirty)
+            int descendantCount = uiDocument.rootVisualElement.GetDescendantCount();
+            if (descendantCount != m_PreviousDescendantCount)
             {
                 LocalizeDocument();
             }
 
-            m_PreviousIsDirty = isDirty;
+            m_PreviousDescendantCount = descendantCount;
         }
 
         void LocalizeDocument()

@@ -12,10 +12,6 @@ public class LocalizationComponentEditor : Editor
     public override VisualElement CreateInspectorGUI()
     {
         var root = new VisualElement();
-
-        var enableOnAwakePropertyField = new PropertyField(serializedObject.FindProperty("m_EnableOnAwake"));
-        root.Add(enableOnAwakePropertyField);
-
         return root;
     }
 }

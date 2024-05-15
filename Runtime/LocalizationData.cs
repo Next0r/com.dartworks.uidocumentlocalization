@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -259,9 +260,14 @@ namespace UIDocumentLocalization
 
         public void OnAfterDeserialize()
         {
-#if UNITY_EDITOR
-            EditorApplication.delayCall += () => onUpdated?.Invoke();
-#endif
+            // Data management is limited during deserialization phase, so wait until next frame.
+            InvokeOnUpdatedAsync();
+        }
+
+        async void InvokeOnUpdatedAsync()
+        {
+            await Task.Yield();
+            onUpdated?.Invoke();
         }
     }
 }
