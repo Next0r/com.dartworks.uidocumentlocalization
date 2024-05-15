@@ -9,6 +9,8 @@ namespace UIDocumentLocalization
     [ExecuteAlways]
     public class LocalizationComponent : MonoBehaviour
     {
+        [SerializeField] bool m_EnableOnAwake;
+
         UIDocument m_UIDocument;
         bool m_PreviousIsDirty;
         IPanel m_Panel;
@@ -20,7 +22,7 @@ namespace UIDocumentLocalization
             set
             {
                 m_UIDocument = value;
-                m_Panel = m_UIDocument?.rootVisualElement.panel;
+                m_Panel = null;
             }
         }
 
@@ -29,9 +31,26 @@ namespace UIDocumentLocalization
             get => m_AsyncOperation;
         }
 
+        IPanel panel
+        {
+            get
+            {
+                if (m_Panel == null)
+                {
+                    m_Panel = m_UIDocument?.rootVisualElement?.panel;
+                }
+
+                return m_Panel;
+            }
+        }
+
         void Awake()
         {
             uiDocument = GetComponent<UIDocument>();
+            if (Application.isPlaying)
+            {
+                enabled = m_EnableOnAwake;
+            }
 
 #if UNITY_EDITOR
             EditorUtility.SetDirty(this);   // Serialize component settings in edit mode.
@@ -49,20 +68,16 @@ namespace UIDocumentLocalization
         }
 #endif
 
+#if UNITY_EDITOR
         void OnEnable()
         {
-            m_Panel = uiDocument?.rootVisualElement.panel;
-
-#if UNITY_EDITOR
             EditorApplication.update += UpdatePanelIsDirty;
             LocalizationConfigObject.onSettingsChanged += OnSettingsChanged;
             OnSettingsChanged(null, LocalizationConfigObject.instance.settings);
-#endif
         }
 
         void OnDisable()
         {
-#if UNITY_EDITOR
             EditorApplication.update -= UpdatePanelIsDirty;
             LocalizationConfigObject.onSettingsChanged -= OnSettingsChanged;
             var settings = LocalizationConfigObject.instance.settings;
@@ -76,8 +91,8 @@ namespace UIDocumentLocalization
                     database.onUpdated -= LocalizeDocument;
                 }
             }
-#endif
         }
+#endif
 
         void OnSettingsChanged(LocalizationSettings previousSettings, LocalizationSettings newSettings)
         {
@@ -116,12 +131,12 @@ namespace UIDocumentLocalization
 
         void UpdatePanelIsDirty()
         {
-            if (m_Panel == null)
+            if (panel == null)
             {
                 return;
             }
 
-            bool isDirty = m_Panel.isDirty;
+            bool isDirty = panel.isDirty;
             if (m_PreviousIsDirty && !isDirty)
             {
                 LocalizeDocument();
@@ -132,6 +147,11 @@ namespace UIDocumentLocalization
 
         void LocalizeDocument()
         {
+            if (uiDocument?.rootVisualElement == null)
+            {
+                return;
+            }
+
             if (m_AsyncOperation != null)
             {
                 m_AsyncOperation.Cancel();

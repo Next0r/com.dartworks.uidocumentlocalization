@@ -350,8 +350,7 @@ namespace UIDocumentLocalization
                 string name = isCustomControlChild ? textElement.name : string.Empty;
                 if (database.TryGetEntry(guid, out var entry, name))
                 {
-                    string fallbackTranslation = entry.address.translation;
-                    string translation = null;
+                    var address = entry.address;
                     var currentAncestor = textElement.hierarchy.parent;
                     while (currentAncestor != null)
                     {
@@ -360,20 +359,16 @@ namespace UIDocumentLocalization
                         {
                             if (entry.TryGetOverride(ancestorGuid, out var ovr) && !ovr.address.isEmpty)
                             {
-                                translation = ovr.address.translation;
+                                address = ovr.address;
                             }
                         }
 
                         currentAncestor = currentAncestor.hierarchy.parent;
                     }
 
-                    if (translation != null)
+                    if (!address.isEmpty)
                     {
-                        textElement.text = translation;
-                    }
-                    else if (!entry.address.isEmpty)
-                    {
-                        textElement.text = fallbackTranslation;
+                        textElement.text = address.translation;
                     }
                 }
             }

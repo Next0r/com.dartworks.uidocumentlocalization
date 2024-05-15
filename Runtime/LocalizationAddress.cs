@@ -8,6 +8,10 @@ namespace UIDocumentLocalization
     [Serializable]
     public class LocalizationAddress
     {
+        const string k_InvalidTableMessage = "Invalid table reference.";
+        const string k_MissingEntryMessage = "Table '{0}' does not contain '{1}' entry.";
+        const string k_MissingTranslationMessage = "Entry '{0}' in table '{1}' does not contain translation for locale '{2}'.";
+
         [SerializeField] LocalizationTable m_Table;
         [SerializeField] string m_Key;
 
@@ -31,23 +35,30 @@ namespace UIDocumentLocalization
             {
                 if (table == null)
                 {
-                    return string.Format("Invalid table reference.");
+                    return k_InvalidTableMessage;
                 }
 
                 var entry = table.GetEntry(key);
                 if (entry == null)
                 {
-                    return string.Format("Table '{0}' does not contain '{1}' entry.", table.name, key);
+                    return string.Format(k_MissingEntryMessage, table.name, key);
                 }
 
                 var settings = LocalizationConfigObject.instance.settings;
                 if (!entry.TryGetTranslation(settings.selectedLocaleIndex, out string translation))
                 {
-                    return string.Format("Entry '{0}' in table '{1}' does not contain translation for locale '{2}'.", key, table.name, settings.selectedLocale);
+                    return string.Format(k_MissingTranslationMessage, key, table.name, settings.selectedLocale);
                 }
 
                 return translation;
             }
+        }
+
+        public override string ToString()
+        {
+            string tableName = table?.name == null ? "null" : table.name;
+            string keyName = string.IsNullOrEmpty(key) ? "null" : key;
+            return string.Format("[table:{0}, key:{1}]", tableName, keyName);
         }
 
         public bool TryGetTranslation(out string translation)

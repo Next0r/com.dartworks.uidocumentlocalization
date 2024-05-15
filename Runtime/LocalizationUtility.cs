@@ -133,24 +133,31 @@ namespace UIDocumentLocalization
                 return null;
             }
 
-            entry.address.TryGetTranslation(out string fallbackTranslation);
-            string translation = null;
+            var address = entry.address;
             var currentAncestor = textElement.hierarchy.parent;
             while (currentAncestor != null)
             {
                 string ancestorGuid = currentAncestor.GetStringStylePropertyByName("guid");
-                if (!string.IsNullOrEmpty(ancestorGuid))
+                if (!string.IsNullOrEmpty(ancestorGuid) && entry.TryGetOverride(ancestorGuid, out var ovr))
                 {
-                    if (entry.TryGetOverride(ancestorGuid, out var ovr) && !ovr.address.isEmpty)
-                    {
-                        ovr.address.TryGetTranslation(out translation);
-                    }
+                    address = ovr.address;
                 }
 
                 currentAncestor = currentAncestor.hierarchy.parent;
             }
 
-            return translation != null ? translation : fallbackTranslation;
+            if (address.isEmpty)
+            {
+                return null;
+            }
+            else if (address.TryGetTranslation(out string translation))
+            {
+                return translation;
+            }
+            else
+            {
+                return address.ToString();
+            }
         }
     }
 }
