@@ -12,7 +12,6 @@ using UnityEngine;
 
 namespace UIDocumentLocalization
 {
-    [CreateAssetMenu(menuName = "UIDocument Localization/Table", fileName = "Table")]
     public class LocalizationTable : ScriptableObject
     {
         static EntryComparer s_EntryComparer = new EntryComparer();
