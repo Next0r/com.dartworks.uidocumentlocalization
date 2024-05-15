@@ -21,6 +21,7 @@ namespace UIDocumentLocalization
         const int k_DefaultKeySetSize = 8;
         const int k_OperationsPerBudgetCheck = 5;
         const long k_GetMatchingKeysBudgetMs = 10L;
+        const char k_CsvFileCommentChar = '#';
 #endif
 
 
@@ -158,6 +159,11 @@ namespace UIDocumentLocalization
             string[] rows = textAsset.text.Split("\n", StringSplitOptions.RemoveEmptyEntries);
             foreach (string row in rows)
             {
+                if (row.TrimStart().StartsWith(k_CsvFileCommentChar))
+                {
+                    continue;
+                }
+
                 var cellValues = ParseCsvRow(row);
                 if (cellValues.Count == 0)
                 {
@@ -182,13 +188,17 @@ namespace UIDocumentLocalization
         {
             // https://gist.github.com/awwsmm/886ac0ce0cef517ad7092915f708175f
             Regex regex = new Regex("(?:,|\\n|^)(\"(?:(?:\"\")*[^\"]*)*\"|[^\",\\n]*|(?:\\n|$))");
-            var results = new List<string>();
+            var cellValues = new List<string>();
             foreach (Match match in regex.Matches(row))
             {
-                results.Add(match.Value.Trim(',', '"', ' '));
+                var cellValue = match.Value.Trim(',', '"', ' ');
+                if (!string.IsNullOrWhiteSpace(cellValue))
+                {
+                    cellValues.Add(cellValue);
+                }
             }
 
-            return results;
+            return cellValues;
         }
 
         public LocalizationAsyncOperation<List<string>> GetMatchingKeysAsync(string input)
