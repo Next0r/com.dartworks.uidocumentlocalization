@@ -1,7 +1,13 @@
 {
     "name": "com.dartworks.uidocumentlocalization",
+    "displayName": "UIDocument Localization",
     "version": "1.0.0",
-    "description": "desc",
-    "displayName": "UIDocumentLocalization",
-    "unity": "2022.1"
+    "unity": "2022.1",
+    "keywords": [
+        "Localization"
+    ],
+    "description": "UIDocument Localization is a package which allows to assign translations to text elements both in UI Toolkit Builder, and runtime UIDocument component.",
+    "dependencies": {
+        "com.unity.ugui": "1.0.0"
+    }
 }
