@@ -62,6 +62,8 @@ namespace UIDocumentLocalization
             }
         }
 
+        public LocalizationData database => settings?.database;
+
 #if UNITY_EDITOR
         [InitializeOnLoadMethod]
         static void Initialize()

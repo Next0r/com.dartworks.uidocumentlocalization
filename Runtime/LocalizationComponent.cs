@@ -50,6 +50,8 @@ namespace UIDocumentLocalization
         {
             EditorApplication.update += UpdateDescendantCount;
             LocalizationConfigObject.instance.onSettingsChanged += OnSettingsChanged;
+
+            // Fake event invocation to attach all required callbacks and perform initial localization.
             OnSettingsChanged(null, LocalizationConfigObject.instance.settings);
         }
 

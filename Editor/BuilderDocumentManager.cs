@@ -98,7 +98,7 @@ namespace UIDocumentLocalization
 
         void OnSelectionChanged()
         {
-            var database = LocalizationConfigObject.instance.settings.database;
+            var database = LocalizationConfigObject.instance.database;
             var localizationWindow = LocalizationWindow.activeWindow;
             if (database == null || localizationWindow == null)
             {
@@ -332,7 +332,7 @@ namespace UIDocumentLocalization
                 return;
             }
 
-            var database = LocalizationConfigObject.instance.settings?.database;
+            var database = LocalizationConfigObject.instance.database;
             if (database == null)
             {
                 return;

@@ -112,7 +112,7 @@ namespace UIDocumentLocalization
 
         static string GetTranslation(TextElement textElement)
         {
-            var database = LocalizationConfigObject.instance.settings.database;
+            var database = LocalizationConfigObject.instance.database;
             if (database == null)
             {
                 Debug.LogWarning("Localization failed. Database is missing.");
