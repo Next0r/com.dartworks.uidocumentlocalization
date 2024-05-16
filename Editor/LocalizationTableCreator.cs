@@ -25,83 +25,52 @@ namespace UIDocumentLocalization
 # As long as this file is attached to Localization Table Asset, such table will update every time you make
 # a change to this file.";
 
-        // [MenuItem("Assets/Create/UIDocument Localization/Raw Table (.csv)", true)]
-        // static bool ValidateCreateTextAsset()
-        // {
-        //     string selectionDirectoryPath = GetSelectionDirectoryPath();
-        //     string pathRootFolder = selectionDirectoryPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).First();
-        //     return pathRootFolder == "Assets";
-        // }
-
         [MenuItem("Assets/Create/UIDocument Localization/Raw Table (.csv)")]
-        static void CreateTextAsset()
+        static void CreateRawTableAsset()
         {
-            string filePath = AssetDatabase.GenerateUniqueAssetPath(Path.Combine(GetSelectionDirectoryPath(), k_NewCsvFileName));
-
-            // We are creating file using stream as AssetDatabase is incapable of creating 'non-asset' files.
-            using (StreamWriter outputFile = new StreamWriter(filePath))
-            {
-                outputFile.WriteLine(k_DefaultCsvFileText);
-            }
-
-            AssetDatabase.Refresh();
-            var textAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(filePath);
-            UnityEditor.Selection.objects = new UnityEngine.Object[] { textAsset };
+            ProjectWindowUtil.CreateAssetWithContent(k_NewCsvFileName, k_DefaultCsvFileText, AssetPreview.GetMiniTypeThumbnail(typeof(TextAsset)));
         }
-
-        // [MenuItem("Assets/Create/UIDocument Localization/Table", true)]
-        // static bool ValidateCreateTableAsset()
-        // {
-        //     string selectionDirectoryPath = GetSelectionDirectoryPath();
-        //     string pathRootFolder = selectionDirectoryPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).First();
-        //     return pathRootFolder == "Assets";
-        // }
 
         [MenuItem("Assets/Create/UIDocument Localization/Table")]
         static void CreateTableAsset()
         {
-            var localizationTable = ScriptableObject.CreateInstance<LocalizationTable>();
-            var tablePath = AssetDatabase.GenerateUniqueAssetPath(Path.Combine(GetSelectionDirectoryPath(), k_NewTableAssetName));
-            AssetDatabase.CreateAsset(localizationTable, tablePath);
-
-            var guids = UnityEditor.Selection.assetGUIDs;
-            if (guids.Length == 1)
+            var asset = ScriptableObject.CreateInstance<LocalizationTable>();
+            if (UnityEditor.Selection.activeObject == null)
             {
-                string path = AssetDatabase.GUIDToAssetPath(guids.First());
-                if (Path.HasExtension(path) && Path.GetExtension(path).Equals(".csv", StringComparison.OrdinalIgnoreCase))
-                {
-                    var textAsset = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
-                    localizationTable.textAsset = textAsset;
-                    localizationTable.Rebuild();
-                }
+                Debug.LogError("Unable to resolve selected directory path.");
+                return;
             }
 
-            UnityEditor.Selection.objects = new UnityEngine.Object[] { localizationTable };
-        }
-
-        static string GetSelectionDirectoryPath()
-        {
-            var guids = UnityEditor.Selection.assetGUIDs;
-            if (guids.Any())
+            string pathName = null;
+            var instanceId = UnityEditor.Selection.activeObject.GetInstanceID();
+            var selectionPathName = AssetDatabase.GetAssetPath(instanceId);
+            if (ProjectWindowUtil.IsFolder(instanceId))
             {
-                string path = AssetDatabase.GUIDToAssetPath(guids.First());
-                if (string.IsNullOrEmpty(path))
-                {
-                    return null;
-                }
-
-                // If file was selected.
-                if (!Directory.Exists(path))
-                {
-                    path = Path.GetDirectoryName(path);
-                }
-
-                return path;
+                pathName = Path.Combine(selectionPathName, k_NewTableAssetName);
             }
             else
             {
-                return null;
+                pathName = Path.Combine(ProjectWindowUtil.GetContainingFolder(selectionPathName), k_NewTableAssetName);
             }
+
+            TextAsset selectedCsvFile = null;
+            if (Path.HasExtension(selectionPathName) && Path.GetExtension(selectionPathName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                selectedCsvFile = UnityEditor.Selection.activeObject as TextAsset;
+            }
+
+            var actionObject = ScriptableObject.CreateInstance<DoCreateNewAsset>();
+            actionObject.onFinished += () =>
+            {
+                if (selectedCsvFile != null)
+                {
+                    asset.textAsset = selectedCsvFile;
+                    asset.Rebuild();
+                }
+            };
+
+            // This is exactly what ProjectWindowUtil.CreateAsset() does.
+            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(asset.GetInstanceID(), actionObject, pathName, AssetPreview.GetMiniThumbnail(asset), null);
         }
     }
 }

@@ -12,6 +12,10 @@ public class LocalizationComponentEditor : Editor
     public override VisualElement CreateInspectorGUI()
     {
         var root = new VisualElement();
+
+        var uiDocumentProperty = new PropertyField(serializedObject.FindProperty("m_UIDocument"));
+        root.Add(uiDocumentProperty);
+
         return root;
     }
 }

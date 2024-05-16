@@ -10,7 +10,8 @@ namespace UIDocumentLocalization
     [ExecuteAlways]
     public class LocalizationComponent : MonoBehaviour
     {
-        UIDocument m_UIDocument;
+        [SerializeField] UIDocument m_UIDocument;
+
         LocalizationAsyncOperation m_AsyncOperation;
         int m_PreviousDescendantCount;
 
