@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace UIDocumentLocalization
 {
-    public class LocalizationTable : ScriptableObject
+    public class LocalizationTable : ScriptableObject, ITextAssetPostprocessorListener
     {
         static EntryComparer s_EntryComparer = new EntryComparer();
 
@@ -115,11 +115,10 @@ namespace UIDocumentLocalization
         void OnEnable()
         {
             Rebuild();
-            TextAssetPostprocessor.onCsvImported += OnCsvImported;
+            TextAssetPostprocessor.RegisterListener(this);
         }
 
-
-        void OnCsvImported(string path)
+        void ITextAssetPostprocessorListener.OnCsvImported(string path)
         {
             if (textAsset == null)
             {
@@ -175,7 +174,7 @@ namespace UIDocumentLocalization
                     translations = cellValues.GetRange(1, cellValues.Count - 1),
                 };
 
-                m_Entries.Add(entry);
+                AddEntry(entry);
             }
 
             EditorUtility.SetDirty(this);

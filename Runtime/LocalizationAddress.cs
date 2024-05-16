@@ -56,7 +56,7 @@ namespace UIDocumentLocalization
 
         public override string ToString()
         {
-            string tableName = table?.name == null ? "null" : table.name;
+            string tableName = table == null ? "null" : table.name;
             string keyName = string.IsNullOrEmpty(key) ? "null" : key;
             return string.Format("[table:{0}, key:{1}]", tableName, keyName);
         }
