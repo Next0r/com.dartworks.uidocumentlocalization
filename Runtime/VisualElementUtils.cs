@@ -165,8 +165,51 @@ namespace UIDocumentLocalization
             guids.Sort();
             return guids;
         }
-
 #endif
+
+        public static void ApplyTranslations(this VisualElement ve, TranslationInfo translationInfo)
+        {
+            foreach (var info in translationInfo)
+            {
+                if (!string.IsNullOrEmpty(info.translation))
+                {
+                    var propertyInfo = ve.GetType().GetProperty(info.propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                    propertyInfo.SetValue(ve, info.translation);
+                }
+            }
+        }
+
+        public static List<VisualElement> GetLocalizableDescendants(this VisualElement ve)
+        {
+            var elements = new List<VisualElement>();
+            GetLocalizableDescendantsRecursive(ve, elements);
+            return elements;
+        }
+
+        static void GetLocalizableDescendantsRecursive(VisualElement ve, List<VisualElement> elements)
+        {
+            foreach (VisualElement child in ve.hierarchy.Children())
+            {
+                if (child is TextElement)
+                {
+                    elements.Add(child);
+                }
+                else
+                {
+                    var propertyInfos = child.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                    foreach (var propertyInfo in propertyInfos)
+                    {
+                        if (Attribute.IsDefined(propertyInfo, typeof(LocalizeProperty)))
+                        {
+                            elements.Add(child);
+                            break;
+                        }
+                    }
+                }
+
+                GetLocalizableDescendantsRecursive(child, elements);
+            }
+        }
 
         public static bool TryGetGuid(this VisualElement ve, out string guid, out VisualElement ancestor)
         {

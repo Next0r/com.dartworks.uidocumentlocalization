@@ -19,27 +19,27 @@ namespace UIDocumentLocalization
         [Serializable]
         public class Override
         {
-            [SerializeField] string m_Guid;
-            [SerializeField] VisualTreeAsset m_VisualTreeAsset;
-            [SerializeField] LocalizationAddress m_Address;
+            [SerializeField] string m_OverridingElementGuid;
+            [SerializeField] VisualTreeAsset m_OverridingElementVisualTreeAsset;
+            [SerializeField] List<LocalizedProperty> m_LocalizedProperties;
             [NonSerialized] Entry m_Entry;
 
-            public string instanceGuid
+            public string overridingElementGuid
             {
-                get => m_Guid;
-                set => m_Guid = value;
+                get => m_OverridingElementGuid;
+                set => m_OverridingElementGuid = value;
             }
 
-            public VisualTreeAsset instanceVisualTreeAsset
+            public VisualTreeAsset overridingElementVisualTreeAsset
             {
-                get => m_VisualTreeAsset;
-                set => m_VisualTreeAsset = value;
+                get => m_OverridingElementVisualTreeAsset;
+                set => m_OverridingElementVisualTreeAsset = value;
             }
 
-            public LocalizationAddress address
+            public List<LocalizedProperty> localizedProperties
             {
-                get => m_Address;
-                set => m_Address = value;
+                get => m_LocalizedProperties;
+                set => m_LocalizedProperties = value;
             }
 
             public Entry entry
@@ -48,15 +48,70 @@ namespace UIDocumentLocalization
                 set => m_Entry = value;
             }
 
+            public bool isEmpty
+            {
+                get
+                {
+                    foreach (var localizedProperty in m_LocalizedProperties)
+                    {
+                        if (!localizedProperty.address.isEmpty)
+                        {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+            }
+
+            public Override()
+            {
+                m_LocalizedProperties = new List<LocalizedProperty>();
+            }
+
             public void Remove()
             {
-                if (entry == null)
+                if (m_Entry == null)
                 {
-                    Debug.LogWarning("Unable to remove override, entry reference not set. First call 'RebuildNonSerializedReferences' on database object.");
+                    Debug.LogWarning("Unable to remove override, localized property reference not set. First call 'RebuildNonSerializedReferences' on database object.");
                     return;
                 }
 
-                entry.overrides.Remove(this);
+                m_Entry.overrides.Remove(this);
+            }
+
+            public bool TryGetLocalizedProperty(string name, out LocalizedProperty localizedProperty)
+            {
+                foreach (var lp in m_LocalizedProperties)
+                {
+                    if (lp.name == name)
+                    {
+                        localizedProperty = lp;
+                        return true;
+                    }
+                }
+
+                localizedProperty = null;
+                return false;
+            }
+        }
+
+        [Serializable]
+        public class LocalizedProperty
+        {
+            [SerializeField] string m_Name;
+            [SerializeField] LocalizationAddress m_Address;
+
+            public string name
+            {
+                get => m_Name;
+                set => m_Name = value;
+            }
+
+            public LocalizationAddress address
+            {
+                get => m_Address;
+                set => m_Address = value;
             }
         }
 
@@ -67,7 +122,7 @@ namespace UIDocumentLocalization
             [SerializeField] string m_Guid;
             [SerializeField] string m_Name;
             [SerializeField] VisualTreeAsset m_VisualTreeAsset;
-            [SerializeField] LocalizationAddress m_Address;
+            [SerializeField] List<LocalizedProperty> m_LocalizedProperties;
             [SerializeField] List<Override> m_Overrides;
 
             public string fullTypeName
@@ -94,10 +149,10 @@ namespace UIDocumentLocalization
                 set => m_VisualTreeAsset = value;
             }
 
-            public LocalizationAddress address
+            public List<LocalizedProperty> localizedProperties
             {
-                get => m_Address;
-                set => m_Address = value;
+                get => m_LocalizedProperties;
+                set => m_LocalizedProperties = value;
             }
 
             public List<Override> overrides
@@ -109,6 +164,7 @@ namespace UIDocumentLocalization
             public Entry()
             {
                 m_Name = string.Empty;
+                m_LocalizedProperties = new List<LocalizedProperty>();
                 m_Overrides = new List<Override>();
             }
 
@@ -116,7 +172,7 @@ namespace UIDocumentLocalization
             {
                 foreach (var o in m_Overrides)
                 {
-                    if (o.instanceGuid == guid)
+                    if (o.overridingElementGuid == guid)
                     {
                         ovr = o;
                         return true;
@@ -129,25 +185,58 @@ namespace UIDocumentLocalization
 
             public void AddOrReplaceOverride(Override newOverride)
             {
-                Override currentOverride = null;
-                foreach (var or in m_Overrides)
+                if (TryGetOverride(newOverride.overridingElementGuid, out var currentOverride))
                 {
-                    if (or.instanceGuid == newOverride.instanceGuid)
-                    {
-                        currentOverride = or;
-                        break;
-                    }
-                }
-
-                if (currentOverride != null)
-                {
-                    currentOverride.address = newOverride.address;
+                    currentOverride.overridingElementVisualTreeAsset = newOverride.overridingElementVisualTreeAsset;
+                    currentOverride.localizedProperties = newOverride.localizedProperties;
+                    currentOverride.entry = newOverride.entry;
                 }
                 else
                 {
                     m_Overrides.Add(newOverride);
                     newOverride.entry = this;
                 }
+            }
+
+            public void MergeLocalizedProperties(List<LocalizedProperty> newLocalizedProperties)
+            {
+                // Remove excessive
+                for (int i = 0; i < m_LocalizedProperties.Count; i++)
+                {
+                    if (GetLocalizedProperty(newLocalizedProperties, m_LocalizedProperties[i].name) == null)
+                    {
+                        m_LocalizedProperties.RemoveAt(i);
+                        i--;
+                    }
+                }
+
+                // Add missing
+                foreach (var newLocalizedProperty in newLocalizedProperties)
+                {
+                    var localizedProperty = GetLocalizedProperty(m_LocalizedProperties, newLocalizedProperty.name);
+                    if (localizedProperty == null)
+                    {
+                        m_LocalizedProperties.Add(localizedProperty);
+                    }
+                }
+            }
+
+            static LocalizedProperty GetLocalizedProperty(List<LocalizedProperty> localizedProperties, string name)
+            {
+                if (!localizedProperties.Any())
+                {
+                    return null;
+                }
+
+                foreach (var localizedProperty in localizedProperties)
+                {
+                    if (localizedProperty != null && localizedProperty.name == name)
+                    {
+                        return localizedProperty;
+                    }
+                }
+
+                return null;
             }
         }
 

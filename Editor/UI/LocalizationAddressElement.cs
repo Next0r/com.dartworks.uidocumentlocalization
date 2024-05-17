@@ -16,46 +16,15 @@ namespace UIDocumentLocalization
         const string k_UssClassName = "address-entry-element";
         const string k_LeftBoxUssClassName = k_UssClassName + "__left-box";
         const string k_RightBoxUssClassName = k_UssClassName + "__right-box";
-        const string k_BorderVariantUssClassName = k_UssClassName + "--border";
 
         const string k_NoKeyHintBoxMessage = "No match";
         const string k_SearchingHintBoxMessage = "Searching...";
         const string k_NoTableHintBoxMessage = "No table selected";
 
-        ObjectField m_VisualTreeAsset;
-        ObjectField m_TableField;
+        ObjectField m_TableObjectField;
         TextField m_KeyTextField;
         Button m_ClearButton;
-        bool m_DisplayBorder;
-        bool m_DisplayVisualTreeAsset;
         LocalizationAsyncOperation<List<string>> m_AsyncOperation;
-
-        public bool displayBorder
-        {
-            get => m_DisplayBorder;
-            set
-            {
-                m_DisplayBorder = value;
-                if (m_DisplayBorder)
-                {
-                    AddToClassList(k_BorderVariantUssClassName);
-                }
-                else
-                {
-                    RemoveFromClassList(k_BorderVariantUssClassName);
-                }
-            }
-        }
-
-        public bool displayVisualTreeAsset
-        {
-            get => m_DisplayVisualTreeAsset;
-            set
-            {
-                m_DisplayVisualTreeAsset = value;
-                m_VisualTreeAsset.style.display = value ? DisplayStyle.Flex : DisplayStyle.None;
-            }
-        }
 
         public LocalizationAddressElement()
         {
@@ -65,12 +34,12 @@ namespace UIDocumentLocalization
             leftBox.AddToClassList(k_LeftBoxUssClassName);
             Add(leftBox);
 
-            m_VisualTreeAsset = new ObjectField() { label = "Source Visual Tree", objectType = typeof(VisualTreeAsset) };
-            m_VisualTreeAsset.SetEnabled(false);
-            leftBox.Add(m_VisualTreeAsset);
-
-            m_TableField = new ObjectField() { label = "Table", objectType = typeof(LocalizationTable) };
-            leftBox.Add(m_TableField);
+            m_TableObjectField = new ObjectField()
+            {
+                label = "Table",
+                objectType = typeof(LocalizationTable)
+            };
+            leftBox.Add(m_TableObjectField);
 
             m_KeyTextField = new TextField() { label = "Key" };
             m_KeyTextField.RegisterCallback<FocusEvent>(OnKeyFieldFocus);
@@ -85,8 +54,12 @@ namespace UIDocumentLocalization
             m_ClearButton = new Button() { text = "Clear" };
             m_ClearButton.clicked += OnClearButtonClicked;
             rightBox.Add(m_ClearButton);
+        }
 
-            displayVisualTreeAsset = false;
+        public void BindProperty(SerializedProperty serializedProperty)
+        {
+            m_TableObjectField.BindProperty(serializedProperty.FindPropertyRelative("m_Table"));
+            m_KeyTextField.BindProperty(serializedProperty.FindPropertyRelative("m_Key"));
         }
 
         void RequestHintBoxContentUpdate()
@@ -94,7 +67,7 @@ namespace UIDocumentLocalization
             m_AsyncOperation?.Cancel();
             var hintBox = LocalizationWindow.activeWindow.hintBox;
 
-            if (m_TableField.value is not LocalizationTable localizationTable)
+            if (m_TableObjectField.value is not LocalizationTable localizationTable)
             {
                 hintBox.ShowMessage(k_NoTableHintBoxMessage);
                 return;
@@ -131,6 +104,8 @@ namespace UIDocumentLocalization
         void OnKeyFieldBlur(BlurEvent evt)
         {
             var nextFocusElement = evt.relatedTarget as VisualElement;
+
+            // Next focus element might be null, especially when entire window loses focus.
             var hintBox = nextFocusElement?.GetFirstAncestorOfType<HintBox>();
 
             // Focused element is null or is not child of hint box.
@@ -141,16 +116,9 @@ namespace UIDocumentLocalization
             }
         }
 
-        public void BindProperty(SerializedProperty overrideOrEntrySp)
-        {
-            m_VisualTreeAsset.BindProperty(overrideOrEntrySp.FindPropertyRelative("m_VisualTreeAsset"));
-            m_TableField.BindProperty(overrideOrEntrySp.FindPropertyRelative("m_Address.m_Table"));
-            m_KeyTextField.BindProperty(overrideOrEntrySp.FindPropertyRelative("m_Address.m_Key"));
-        }
-
         void OnClearButtonClicked()
         {
-            m_TableField.value = null;
+            m_TableObjectField.value = null;
             m_KeyTextField.value = string.Empty;
         }
     }

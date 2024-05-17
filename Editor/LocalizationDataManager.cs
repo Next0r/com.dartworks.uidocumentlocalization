@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -12,7 +13,7 @@ namespace UIDocumentLocalization
 {
     class LocalizationDataManager
     {
-        public static void UpdateDatabase(List<TextElement> textElements, VisualTreeAsset activeVisualTreeAsset)
+        public static void UpdateDatabase(VisualElement documentRootElement, VisualTreeAsset activeVisualTreeAsset)
         {
             var database = LocalizationConfigObject.instance.database;
             if (database == null)
@@ -22,15 +23,17 @@ namespace UIDocumentLocalization
 
             // First remove all entries, so database is clean.
             var entries = database.GetEntriesByVisualTree(activeVisualTreeAsset);
-            entries.Sort(LocalizationData.entriesComparer);
             foreach (var entry in entries)
             {
                 database.RemoveEntry(entry);
             }
 
-            foreach (var textElement in textElements)
+            // Sort entries which have been removed for faster search and re-adding.
+            entries.Sort(LocalizationData.entriesComparer);
+            var localizableElements = documentRootElement.GetLocalizableDescendants();
+            foreach (var element in localizableElements)
             {
-                if (!textElement.TryGetGuid(out var guid, out var ancestor))
+                if (!element.TryGetGuid(out var guid, out var ancestor))
                 {
                     continue;
                 }
@@ -39,11 +42,9 @@ namespace UIDocumentLocalization
                 var entry = new LocalizationData.Entry()
                 {
                     guid = guid,
-                    name = isCustomControlChild ? textElement.name : string.Empty,
+                    name = isCustomControlChild ? element.name : string.Empty,
                 };
 
-                // If entry with similar guid and name already existed in database then there is
-                // no reason to create it from scratch, just make a copy and re-add it to database.
                 int idx = entries.BinarySearch(entry, LocalizationData.entriesComparer);
                 if (idx >= 0)
                 {
@@ -60,13 +61,35 @@ namespace UIDocumentLocalization
                     }
                     else
                     {
-                        entry.fullTypeName = textElement.GetType().FullName;
-                        entry.visualTreeAsset = textElement.visualTreeAssetSource != null
-                            ? textElement.visualTreeAssetSource
+                        entry.fullTypeName = element.GetType().FullName;
+                        entry.visualTreeAsset = element.visualTreeAssetSource != null
+                            ? element.visualTreeAssetSource
                             : activeVisualTreeAsset;
                     }
                 }
 
+                // Update list of properties which should be available for localization.
+                var localizedProperties = new List<LocalizationData.LocalizedProperty>();
+                if (element is TextElement)
+                {
+                    var localizedProperty = new LocalizationData.LocalizedProperty() { name = "text" };
+                    localizedProperties.Add(localizedProperty);
+                }
+
+                // Custom control might inherit form text element, so always look for properties with
+                // LocalizeProperty attribute defined.
+                var propertyInfos = element.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                foreach (var propertyInfo in propertyInfos)
+                {
+                    if (Attribute.IsDefined(propertyInfo, typeof(LocalizeProperty)))
+                    {
+                        var localizedProperty = new LocalizationData.LocalizedProperty() { name = propertyInfo.Name };
+                        localizedProperties.Add(localizedProperty);
+                    }
+                }
+
+                // Here we are removing unused properties and adding new ones to entry.
+                entry.MergeLocalizedProperties(localizedProperties);
                 database.TryAddEntry(entry);
             }
 
@@ -88,8 +111,8 @@ namespace UIDocumentLocalization
             var guidToOverrides = new Dictionary<string, List<LocalizationData.Override>>();
             foreach (var ovr in database.GetOverrides())
             {
-                // Immediately remove any override which address is empty.
-                if (ovr.address.isEmpty)
+                // Immediately remove empty overrides.
+                if (ovr.isEmpty)
                 {
                     ovr.Remove();
                     removedCount++;
@@ -97,10 +120,10 @@ namespace UIDocumentLocalization
                 }
 
                 List<LocalizationData.Override> overrides;
-                if (!guidToOverrides.TryGetValue(ovr.instanceGuid, out overrides))
+                if (!guidToOverrides.TryGetValue(ovr.overridingElementGuid, out overrides))
                 {
                     overrides = new List<LocalizationData.Override>();
-                    guidToOverrides.Add(ovr.instanceGuid, overrides);
+                    guidToOverrides.Add(ovr.overridingElementGuid, overrides);
                 }
 
                 overrides.Add(ovr);

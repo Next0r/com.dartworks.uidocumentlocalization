@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -49,7 +51,7 @@ namespace UIDocumentLocalization
 
             // Building a query and turning it into list also costs significant amount of time,
             // so it's also included in time budget.
-            var textElements = subTreeRoot.Query<TextElement>().ToList();
+            var localizableDescendants = subTreeRoot.GetLocalizableDescendants();
             if (stopwatch.GetElapsedSeconds() > timeBudgetSec)
             {
                 await Task.Yield();
@@ -57,21 +59,22 @@ namespace UIDocumentLocalization
             }
 
             int processedElements = 0;
-            var elementToTranslationDict = new Dictionary<TextElement, string>();
-            foreach (var textElement in textElements)
+            var localizableToTranslationsDict = new Dictionary<VisualElement, TranslationInfo>();
+            foreach (var localizableDescendant in localizableDescendants)
             {
                 // We need to check whether text element still exists as loop is being executed asynchronously.
-                if (textElement != null)
+                if (localizableDescendant != null)
                 {
-                    string translation = GetTranslation(textElement);
-                    if (!string.IsNullOrEmpty(translation))
+                    // string translation = GetTranslations(textElement);
+                    var translations = GetTranslations(localizableDescendant);
+                    if (translations.Any())
                     {
-                        elementToTranslationDict.Add(textElement, translation);
+                        localizableToTranslationsDict.Add(localizableDescendant, translations);
                     }
                 }
 
                 processedElements += 1;
-                op.progress = ((float)processedElements / textElements.Count);
+                op.progress = ((float)processedElements / localizableDescendants.Count);
                 if (processedElements % m_OperationsPerBudgetCheck != 0)
                 {
                     continue;
@@ -85,15 +88,15 @@ namespace UIDocumentLocalization
             }
 
             // Set all text element properties at once to avoid multiple canvas rebuild calls.
-            foreach (var elementToTranslation in elementToTranslationDict)
+            foreach (var localizableToTranslations in localizableToTranslationsDict)
             {
-                TextElement textElement = elementToTranslation.Key;
-                string translation = elementToTranslation.Value;
+                var localizableElement = localizableToTranslations.Key;
+                var translations = localizableToTranslations.Value;
 
                 // Once again text element could be removed in 'meantime'.
-                if (textElement != null)
+                if (localizableElement != null)
                 {
-                    textElement.text = translation;
+                    localizableElement.ApplyTranslations(translations);
                 }
             }
 
@@ -101,16 +104,13 @@ namespace UIDocumentLocalization
             op.InvokeCompleted();
         }
 
-        public static void Localize(TextElement textElement)
+        public static void Localize(VisualElement localizableElement)
         {
-            string translation = GetTranslation(textElement);
-            if (!string.IsNullOrEmpty(translation))
-            {
-                textElement.text = translation;
-            }
+            var translations = GetTranslations(localizableElement);
+            localizableElement.ApplyTranslations(translations);
         }
 
-        static string GetTranslation(TextElement textElement)
+        static TranslationInfo GetTranslations(VisualElement visualElement)
         {
             var database = LocalizationConfigObject.instance.database;
             if (database == null)
@@ -119,45 +119,56 @@ namespace UIDocumentLocalization
                 return null;
             }
 
-            if (!textElement.TryGetGuid(out string guid, out VisualElement ancestor))
+            if (!visualElement.TryGetGuid(out string guid, out VisualElement ancestor))
             {
-                Debug.LogWarningFormat("Localization failed. '{0}' has no guid assigned.", textElement.name);
+                Debug.LogWarningFormat("Localization failed. '{0}' has no guid assigned.", visualElement.name);
                 return null;
             }
 
             bool isCustomControlChild = ancestor != null;
-            string name = isCustomControlChild ? textElement.name : string.Empty;
+            string name = isCustomControlChild ? visualElement.name : string.Empty;
             if (!database.TryGetEntry(guid, out var entry, name))
             {
-                Debug.LogWarningFormat("Localization failed. '{0}' has no corresponding entry in localization database.", textElement.name);
+                Debug.LogWarningFormat("Localization failed. '{0}' has no corresponding entry in localization database.", visualElement.name);
                 return null;
             }
 
-            var address = entry.address;
-            var currentAncestor = textElement.hierarchy.parent;
-            while (currentAncestor != null)
+            var translations = new TranslationInfo();
+            foreach (var localizedProperty in entry.localizedProperties)
             {
-                string ancestorGuid = currentAncestor.GetStringStylePropertyByName("guid");
-                if (!string.IsNullOrEmpty(ancestorGuid) && entry.TryGetOverride(ancestorGuid, out var ovr))
+                var address = localizedProperty.address;
+                var currentAncestor = visualElement.hierarchy.parent;
+                while (currentAncestor != null)
                 {
-                    address = ovr.address;
+                    string ancestorGuid = currentAncestor.GetStringStylePropertyByName("guid");
+                    if (!string.IsNullOrEmpty(ancestorGuid))
+                    {
+                        if (entry.TryGetOverride(ancestorGuid, out var ovr) &&
+                            ovr.TryGetLocalizedProperty(localizedProperty.name, out var overrideLocalizedProperty) &&
+                            !overrideLocalizedProperty.address.isEmpty)
+                        {
+                            address = overrideLocalizedProperty.address;
+                        }
+                    }
+
+                    currentAncestor = currentAncestor.hierarchy.parent;
                 }
 
-                currentAncestor = currentAncestor.hierarchy.parent;
+                if (address.isEmpty)
+                {
+                    translations.Add(localizedProperty.name, null);
+                }
+                else if (address.TryGetTranslation(out string translation))
+                {
+                    translations.Add(localizedProperty.name, translation);
+                }
+                else
+                {
+                    translations.Add(localizedProperty.name, address.ToString());
+                }
             }
 
-            if (address.isEmpty)
-            {
-                return null;
-            }
-            else if (address.TryGetTranslation(out string translation))
-            {
-                return translation;
-            }
-            else
-            {
-                return address.ToString();
-            }
+            return translations;
         }
     }
 }

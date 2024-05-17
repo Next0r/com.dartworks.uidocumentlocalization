@@ -12,13 +12,11 @@ namespace UIDocumentLocalization
     class LocalizationWindowSelectedElement : VisualElement
     {
         const string k_UssClassName = "selected-element";
-        const string k_HintBoxUssClassName = k_UssClassName + "__hint-box";
 
         Label m_OverrideLabel;
         TextField m_NameTextField;
-        LocalizationAddressElement m_AddressElement;
-        Foldout m_BaseAddressFoldout;
-        LocalizationAddressElement m_BaseAddressElement;
+        Foldout m_LocalizedPropertiesFoldout;
+        List<LocalizedPropertyElement> m_LocalizedPropertyElements;
 
         public string selectedElementName
         {
@@ -26,8 +24,16 @@ namespace UIDocumentLocalization
             set => m_NameTextField.SetValueWithoutNotify(value);
         }
 
+        public bool overrideLabelDisplayed
+        {
+            get => m_OverrideLabel.style.display == DisplayStyle.Flex;
+            set => m_OverrideLabel.style.display = value ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
         public LocalizationWindowSelectedElement()
         {
+            m_LocalizedPropertyElements = new List<LocalizedPropertyElement>();
+
             AddToClassList(k_UssClassName);
 
             m_OverrideLabel = new Label { text = "Override" };
@@ -38,35 +44,29 @@ namespace UIDocumentLocalization
             m_NameTextField.SetEnabled(false);
             Add(m_NameTextField);
 
-            m_AddressElement = new LocalizationAddressElement();
-            Add(m_AddressElement);
-
-            m_BaseAddressFoldout = new Foldout() { text = "Base Address" };
-            m_BaseAddressFoldout.value = false; // Collapsed
-            Add(m_BaseAddressFoldout);
-
-            m_BaseAddressElement = new LocalizationAddressElement();
-            m_BaseAddressElement.displayBorder = true;
-            m_BaseAddressElement.displayVisualTreeAsset = true;
-            m_BaseAddressFoldout.Add(m_BaseAddressElement);
+            m_LocalizedPropertiesFoldout = new Foldout() { text = "Localized Properties" };
+            m_LocalizedPropertiesFoldout.value = true;  // Unfolded
+            Add(m_LocalizedPropertiesFoldout);
         }
 
-        public void BindProperty(SerializedProperty entrySp, int overrideIndex = -1)
+        public void GenerateLocalizedPropertyElements(int elementsCount)
         {
-            bool isOverride = overrideIndex != -1;
-            m_OverrideLabel.style.display = isOverride ? DisplayStyle.Flex : DisplayStyle.None;
-            m_BaseAddressFoldout.style.display = isOverride ? DisplayStyle.Flex : DisplayStyle.None;
+            for (int i = 0; i < elementsCount; i++)
+            {
+                var localizedPropertyElement = new LocalizedPropertyElement();
+                m_LocalizedPropertiesFoldout.Add(localizedPropertyElement);
+                m_LocalizedPropertyElements.Add(localizedPropertyElement);
+            }
+        }
 
-            if (isOverride)
+        public LocalizedPropertyElement GetLocalizedPropertyElement(int index)
+        {
+            if (index >= 0 && index < m_LocalizedPropertyElements.Count)
             {
-                var overrideSp = entrySp.FindPropertyRelative($"m_Overrides.Array.data[{overrideIndex}]");
-                m_AddressElement.BindProperty(overrideSp);
-                m_BaseAddressElement.BindProperty(entrySp);
+                return m_LocalizedPropertyElements[index];
             }
-            else
-            {
-                m_AddressElement.BindProperty(entrySp);
-            }
+
+            return null;
         }
     }
 }

@@ -18,14 +18,6 @@
   /* justify-content: center; */
 }
 
-.address-entry-element--border {
-  border-radius: 3px;
-  border-color: rgb(20, 20, 20);
-  border-width: 1px;
-  padding: 4px;
-  margin: 2px;
-}
-
 .hint-box {
   border-radius: 3px;
   border-color: rgb(20, 20, 20);
@@ -41,4 +33,21 @@
 
 .hint-box__list-view {
   min-height: 16px;
+}
+
+.localized-property {
+  border-radius: 3px;
+  border-color: #1a1a1a;
+  border-width: 1px;
+  padding: 4px;
+  margin: 2px;
+  background-color: #464646;
+}
+
+.localized-property__base-address-container {
+  border-radius: 3px;
+  border-color: #1a1a1a;
+  border-width: 1px;
+  padding: 4px;
+  margin: 2px;
 }

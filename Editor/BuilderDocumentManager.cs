@@ -3,10 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using UIDocumentLocalization.Wrappers;
 using Unity.VisualScripting;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -108,79 +110,97 @@ namespace UIDocumentLocalization
             localizationWindow.Clear();
             foreach (VisualElement ve in m_Selection)
             {
-                if (ve is not TextElement textElement)
+                if (!ve.TryGetGuid(out string guid, out VisualElement ancestor))
                 {
                     continue;
                 }
 
-                if (textElement.TryGetGuid(out string guid, out VisualElement ancestor))
+                bool isCustomControlChild = ancestor != null;
+                string name = isCustomControlChild ? ve.name : string.Empty;
+                if (!database.TryGetEntry(guid, out var entry, name))
                 {
-                    bool isCustomControlChild = ancestor != null;
-                    string name = isCustomControlChild ? textElement.name : string.Empty;
-                    if (!database.TryGetEntry(guid, out var entry, name))
+                    continue;
+                }
+
+                bool isOverride = isCustomControlChild
+                    ? ancestor.visualTreeAssetSource != null
+                    : ve.visualTreeAssetSource != null;
+
+                var selectedElement = new LocalizationWindowSelectedElement { selectedElementName = ve.name };
+                selectedElement.GenerateLocalizedPropertyElements(entry.localizedProperties.Count);
+                selectedElement.overrideLabelDisplayed = isOverride;
+                localizationWindow.AddSelectedElement(selectedElement);
+
+                var databaseSO = new SerializedObject(database);
+                var entrySP = databaseSO.FindProperty($"m_Entries.Array.data[{database.IndexOf(entry)}]");
+                if (isOverride)
+                {
+                    VisualElement overridingElement;
+                    overridingElement = ve.GetAncestorDefinedInTreeAsset(m_ActiveVisualTreeAsset);
+                    if (overridingElement == null)
                     {
                         continue;
                     }
 
-                    bool isOverride = isCustomControlChild
-                        ? ancestor.visualTreeAssetSource != null
-                        : textElement.visualTreeAssetSource != null;
-
-                    var selectedElement = new LocalizationWindowSelectedElement { selectedElementName = ve.name };
-
-                    var serializedObject = new SerializedObject(database);
-                    var entrySp = serializedObject.FindProperty($"m_Entries.Array.data[{database.IndexOf(entry)}]");
-                    var overridesSp = entrySp.FindPropertyRelative("m_Overrides");
-                    int overrideIndex = -1;
-                    if (isOverride)
+                    string overridingElementGuid = null;
+                    overridingElementGuid = overridingElement.GetStringStylePropertyByName("guid");
+                    if (string.IsNullOrEmpty(overridingElementGuid))
                     {
-                        var overridingVe = textElement.GetAncestorDefinedInTreeAsset(m_ActiveVisualTreeAsset);
-                        if (overridingVe == null)
-                        {
-                            continue;
-                        }
-
-                        string overridingVeGuid = overridingVe.GetStringStylePropertyByName("guid");
-                        if (string.IsNullOrEmpty(overridingVeGuid))
-                        {
-                            continue;
-                        }
-
-                        // We are trying to bind override property, let's find index of one that matches instance guid.
-                        for (int i = 0; i < overridesSp.arraySize; i++)
-                        {
-                            var oSp = overridesSp.FindPropertyRelative($"Array.data[{i}]");
-                            var oGuid = oSp.FindPropertyRelative("m_Guid").stringValue;
-                            if (oGuid == overridingVeGuid)
-                            {
-                                overrideIndex = i;
-                                break;
-                            }
-                        }
-
-                        // If override index is still -1 it means that we have to add new empty override in order to generate
-                        // serialized property which contents can be bound to address fields.
-                        if (overrideIndex == -1)
-                        {
-                            var ovr = new LocalizationData.Override()
-                            {
-                                instanceGuid = overridingVeGuid,
-                                instanceVisualTreeAsset = m_ActiveVisualTreeAsset,
-                            };
-                            entry.AddOrReplaceOverride(ovr);
-
-                            // After adding empty override we have to sync serialized object and once again fetch it's properties.
-                            serializedObject.Update();
-                            entrySp = serializedObject.FindProperty($"m_Entries.Array.data[{database.IndexOf(entry)}]");
-                            overridesSp = entrySp.FindPropertyRelative("m_Overrides");
-
-                            // Entry overrides are not being sorted, so override index is last one in array (list).
-                            overrideIndex = overridesSp.arraySize - 1;
-                        }
+                        continue;
                     }
 
-                    selectedElement.BindProperty(entrySp, overrideIndex);
-                    localizationWindow.AddSelectedElement(selectedElement);
+                    LocalizationData.Override ovr;
+                    if (!entry.TryGetOverride(overridingElementGuid, out ovr))
+                    {
+                        // If override for overriding element does not exist in database, we have to create new one, as something
+                        // has to be passed to BindProperty method of visual element.
+                        ovr = new LocalizationData.Override()
+                        {
+                            overridingElementGuid = overridingElementGuid,
+                            overridingElementVisualTreeAsset = m_ActiveVisualTreeAsset,
+                        };
+
+                        for (int i = 0; i < entry.localizedProperties.Count; i++)
+                        {
+                            var localizedProperty = new LocalizationData.LocalizedProperty() { name = entry.localizedProperties[i].name };
+                            ovr.localizedProperties.Add(localizedProperty);
+                        }
+
+                        entry.AddOrReplaceOverride(ovr);
+
+                        // As adding or replacing override in database makes database serialized object outdated, we have to update
+                        // such SO and then fetch out serialized properties once again, otherwise we would not be able to get
+                        // serialized property of recently added override object.
+                        databaseSO.Update();
+                        entrySP = databaseSO.FindProperty($"m_Entries.Array.data[{database.IndexOf(entry)}]");
+                    }
+
+                    int overrideIndex = entry.overrides.IndexOf(ovr);
+                    var overrideSP = entrySP.FindPropertyRelative($"m_Overrides.Array.data[{overrideIndex}]");
+                    for (int i = 0; i < entry.localizedProperties.Count; i++)
+                    {
+                        var localizedPropertyElement = selectedElement.GetLocalizedPropertyElement(i);
+                        var localizedPropertySP = entrySP.FindPropertyRelative($"m_LocalizedProperties.Array.data[{i}]");
+
+                        localizedPropertyElement.propertyTextField.BindProperty(localizedPropertySP.FindPropertyRelative("m_Name"));
+                        localizedPropertyElement.baseAddressElement.BindProperty(localizedPropertySP.FindPropertyRelative("m_Address"));
+                        localizedPropertyElement.baseAddressFoldoutDisplayed = true;
+
+                        var overrideLocalizedPropertySP = overrideSP.FindPropertyRelative($"m_LocalizedProperties.Array.data[{i}]");
+                        localizedPropertyElement.addressElement.BindProperty(overrideLocalizedPropertySP.FindPropertyRelative("m_Address"));
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < entry.localizedProperties.Count; i++)
+                    {
+                        var localizedPropertyElement = selectedElement.GetLocalizedPropertyElement(i);
+                        var localizedPropertySP = entrySP.FindPropertyRelative($"m_LocalizedProperties.Array.data[{i}]");
+
+                        localizedPropertyElement.propertyTextField.BindProperty(localizedPropertySP.FindPropertyRelative("m_Name"));
+                        localizedPropertyElement.addressElement.BindProperty(localizedPropertySP.FindPropertyRelative("m_Address"));
+                        localizedPropertyElement.baseAddressFoldoutDisplayed = false;
+                    }
                 }
             }
         }
@@ -227,7 +247,7 @@ namespace UIDocumentLocalization
             }
 
             AssignOrUpdateGuids();
-            LocalizationDataManager.UpdateDatabase(m_DocumentRootElement.GetDescendantTextElements(), m_ActiveVisualTreeAsset);
+            LocalizationDataManager.UpdateDatabase(m_DocumentRootElement, m_ActiveVisualTreeAsset);
 
             var previousDescendantsGuids = m_DescendantsGuids;
             m_DescendantsGuids = m_DocumentRootElement.GetDescendantGuids();
@@ -338,28 +358,36 @@ namespace UIDocumentLocalization
                 return;
             }
 
-            var textElements = m_DocumentRootElement.GetDescendantTextElements();
-            foreach (var textElement in textElements)
+            var localizableDescendants = m_DocumentRootElement.GetLocalizableDescendants();
+            foreach (var localizableDescendant in localizableDescendants)
             {
-                if (!textElement.TryGetGuid(out string guid, out VisualElement ancestor))
+                if (!localizableDescendant.TryGetGuid(out string guid, out VisualElement ancestor))
                 {
                     continue;
                 }
 
                 bool isCustomControlChild = ancestor != null;
-                string name = isCustomControlChild ? textElement.name : string.Empty;
-                if (database.TryGetEntry(guid, out var entry, name))
+                string name = isCustomControlChild ? localizableDescendant.name : string.Empty;
+
+                if (!database.TryGetEntry(guid, out var entry, name))
                 {
-                    var address = entry.address;
-                    var currentAncestor = textElement.hierarchy.parent;
+                    continue;
+                }
+
+                foreach (var localizedProperty in entry.localizedProperties)
+                {
+                    var address = localizedProperty.address;
+                    var currentAncestor = localizableDescendant.hierarchy.parent;
                     while (currentAncestor != null)
                     {
                         string ancestorGuid = currentAncestor.GetStringStylePropertyByName("guid");
                         if (!string.IsNullOrEmpty(ancestorGuid))
                         {
-                            if (entry.TryGetOverride(ancestorGuid, out var ovr) && !ovr.address.isEmpty)
+                            if (entry.TryGetOverride(ancestorGuid, out var ovr) &&
+                                ovr.TryGetLocalizedProperty(localizedProperty.name, out var overrideLocalizedProperty) &&
+                                !overrideLocalizedProperty.address.isEmpty)
                             {
-                                address = ovr.address;
+                                address = overrideLocalizedProperty.address;
                             }
                         }
 
@@ -368,7 +396,8 @@ namespace UIDocumentLocalization
 
                     if (!address.isEmpty)
                     {
-                        textElement.text = address.translation;
+                        var propertyInfo = localizableDescendant.GetType().GetProperty(localizedProperty.name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                        propertyInfo.SetValue(localizableDescendant, address.translation);
                     }
                 }
             }
