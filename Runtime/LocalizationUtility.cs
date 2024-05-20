@@ -116,13 +116,13 @@ namespace UIDocumentLocalization
             if (database == null)
             {
                 Debug.LogWarning("Localization failed. Database is missing.");
-                return null;
+                return TranslationInfo.Empty;
             }
 
             if (!visualElement.TryGetGuid(out string guid, out VisualElement ancestor))
             {
                 Debug.LogWarningFormat("Localization failed. '{0}' has no guid assigned.", visualElement.name);
-                return null;
+                return TranslationInfo.Empty;
             }
 
             bool isCustomControlChild = ancestor != null;
@@ -130,7 +130,7 @@ namespace UIDocumentLocalization
             if (!database.TryGetEntry(guid, out var entry, name))
             {
                 Debug.LogWarningFormat("Localization failed. '{0}' has no corresponding entry in localization database.", visualElement.name);
-                return null;
+                return TranslationInfo.Empty;
             }
 
             var translations = new TranslationInfo();

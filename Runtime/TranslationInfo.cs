@@ -51,6 +51,8 @@ namespace UIDocumentLocalization
             set => m_Entries = value;
         }
 
+        public static TranslationInfo Empty => new TranslationInfo();
+
         public TranslationInfo()
         {
             m_Entries = new List<Entry>();

@@ -81,7 +81,8 @@ namespace UIDocumentLocalization
                 var propertyInfos = element.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
                 foreach (var propertyInfo in propertyInfos)
                 {
-                    if (Attribute.IsDefined(propertyInfo, typeof(LocalizeProperty)))
+                    if (typeof(string).IsAssignableFrom(propertyInfo.PropertyType) &&
+                        Attribute.IsDefined(propertyInfo, typeof(LocalizeProperty)))
                     {
                         var localizedProperty = new LocalizationData.LocalizedProperty() { name = propertyInfo.Name };
                         localizedProperties.Add(localizedProperty);

@@ -216,7 +216,7 @@ namespace UIDocumentLocalization
                     var localizedProperty = GetLocalizedProperty(m_LocalizedProperties, newLocalizedProperty.name);
                     if (localizedProperty == null)
                     {
-                        m_LocalizedProperties.Add(localizedProperty);
+                        m_LocalizedProperties.Add(newLocalizedProperty);
                     }
                 }
             }
