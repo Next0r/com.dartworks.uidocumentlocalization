@@ -91,7 +91,7 @@ namespace UIDocumentLocalization
             }
 
             var selection = new Selection(builderWindow.selection.selection);
-            if (m_Selection.CompareTo(selection) != 0)
+            if (!m_Selection.Equals(selection))
             {
                 m_Selection = selection;
                 OnSelectionChanged();
@@ -222,6 +222,8 @@ namespace UIDocumentLocalization
                 m_DocumentRootElement = BuilderWrapper.activeWindow.documentRootElement;
                 m_PreviousContentHash = m_ActiveVisualTreeAsset.contentHash;
                 UpdateDatabase();
+                m_Selection.Clear();
+                LocalizationWindow.activeWindow.Clear();
             }
         }
 

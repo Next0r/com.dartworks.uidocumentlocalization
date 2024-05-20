@@ -1,12 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace UIDocumentLocalization
 {
-    class Selection : IEnumerable<VisualElement>, IComparable<Selection>
+    class Selection : IEnumerable<VisualElement>, IEquatable<Selection>
     {
         public class SelectionEnumerator : IEnumerator<VisualElement>
         {
@@ -42,11 +43,12 @@ namespace UIDocumentLocalization
         List<VisualElement> m_VisualElements;
         List<int> m_Positions;
 
-        public bool isStored => m_Positions != null;
+        public bool isStored => m_Positions.Any();
 
         public Selection()
         {
             m_VisualElements = new List<VisualElement>();
+            m_Positions = new List<int>();
         }
 
         public Selection(List<VisualElement> visualElements)
@@ -57,11 +59,12 @@ namespace UIDocumentLocalization
             }
 
             m_VisualElements = visualElements;
+            m_Positions = new List<int>();
         }
 
         public void Store(VisualElement documentRootElement)
         {
-            m_Positions = new List<int>();
+            m_Positions.Clear();
             var visualElements = documentRootElement.Query<VisualElement>().ToList();
             foreach (var ve in m_VisualElements)
             {
@@ -71,11 +74,6 @@ namespace UIDocumentLocalization
 
         public void Restore(VisualElement documentRootElement)
         {
-            if (m_Positions == null)
-            {
-                return;
-            }
-
             m_VisualElements.Clear();
             var visualElements = documentRootElement.Query<VisualElement>().ToList();
             foreach (int position in m_Positions)
@@ -83,7 +81,13 @@ namespace UIDocumentLocalization
                 m_VisualElements.Add(visualElements[position]);
             }
 
-            m_Positions = null;
+            m_Positions.Clear();
+        }
+
+        public void Clear()
+        {
+            m_VisualElements.Clear();
+            m_Positions.Clear();
         }
 
         public IEnumerator<VisualElement> GetEnumerator()
@@ -95,23 +99,22 @@ namespace UIDocumentLocalization
         {
             return new SelectionEnumerator(m_VisualElements);
         }
-
-        public int CompareTo(Selection other)
+        public bool Equals(Selection other)
         {
             if (m_VisualElements.Count != other.m_VisualElements.Count)
             {
-                return m_VisualElements.Count.CompareTo(other.m_VisualElements.Count);
+                return false;
             }
 
             for (int i = 0; i < m_VisualElements.Count; i++)
             {
                 if (m_VisualElements[i] != other.m_VisualElements[i])
                 {
-                    return -1;
+                    return false;
                 }
             }
 
-            return 0;
+            return true;
         }
     }
 }
