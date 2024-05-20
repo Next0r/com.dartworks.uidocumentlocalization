@@ -16,7 +16,7 @@ namespace UIDocumentLocalization.Wrappers
         static PropertyInfo s_IdProperty = type.GetProperty("id");
         static MethodInfo s_GetAttributeValueMethod = type.GetMethod("GetAttributeValue");
 
-        object m_Obj;
+        protected object m_Obj;
         string m_FullTypeName;
         int m_ParentId;
         int m_Id;

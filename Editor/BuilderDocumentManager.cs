@@ -399,6 +399,10 @@ namespace UIDocumentLocalization
                         var propertyInfo = localizableDescendant.GetType().GetProperty(localizedProperty.name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
                         propertyInfo.SetValue(localizableDescendant, address.translation);
                     }
+                    else
+                    {
+                        localizableDescendant.ResetAttribute(localizedProperty.name.ToUxmlAttributeName());
+                    }
                 }
             }
         }
