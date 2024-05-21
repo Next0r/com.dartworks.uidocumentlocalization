@@ -180,6 +180,7 @@ namespace UIDocumentLocalization
                         var localizedPropertySP = entrySP.FindPropertyRelative($"m_LocalizedProperties.Array.data[{i}]");
 
                         localizedPropertyElement.propertyTextField.BindProperty(localizedPropertySP.FindPropertyRelative("m_Name"));
+                        localizedPropertyElement.baseVisualTreeAssetObjectField.BindProperty(entrySP.FindPropertyRelative("m_VisualTreeAsset"));
                         localizedPropertyElement.baseAddressElement.BindProperty(localizedPropertySP.FindPropertyRelative("m_Address"));
                         localizedPropertyElement.baseAddressFoldoutDisplayed = true;
 
