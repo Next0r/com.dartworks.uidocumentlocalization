@@ -122,10 +122,7 @@ namespace UIDocumentLocalization
                     continue;
                 }
 
-                bool isOverride = isCustomControlChild
-                    ? ancestor.visualTreeAssetSource != null
-                    : ve.visualTreeAssetSource != null;
-
+                bool isOverride = ve.GetLinkedVisualElementAssetInTemplate() != null;
                 var selectedElement = new LocalizationWindowSelectedElement { selectedElementName = ve.name };
                 selectedElement.GenerateLocalizedPropertyElements(entry.localizedProperties.Count);
                 selectedElement.overrideLabelDisplayed = isOverride;
