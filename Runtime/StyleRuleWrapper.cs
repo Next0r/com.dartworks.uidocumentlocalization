@@ -14,10 +14,25 @@ namespace UIDocumentLocalization.Wrappers
         static PropertyInfo s_PropertiesProperty = type.GetProperty("properties");
 
         object m_Obj;
-        List<StylePropertyWrapper> m_Properties;
 
         public object obj => m_Obj;
-        public List<StylePropertyWrapper> properties => m_Properties;
+
+        public List<StylePropertyWrapper> properties
+        {
+            get
+            {
+                var properties = new List<StylePropertyWrapper>();
+                if (s_PropertiesProperty.GetValue(obj) is Array propertiesArray)
+                {
+                    foreach (var property in propertiesArray)
+                    {
+                        properties.Add(new StylePropertyWrapper(property));
+                    }
+                }
+
+                return properties;
+            }
+        }
 
         public StyleRuleWrapper(object obj)
         {
@@ -32,14 +47,6 @@ namespace UIDocumentLocalization.Wrappers
             }
 
             m_Obj = obj;
-            m_Properties = new List<StylePropertyWrapper>();
-            if (s_PropertiesProperty.GetValue(obj) is Array propertiesArray)
-            {
-                foreach (var property in propertiesArray)
-                {
-                    m_Properties.Add(new StylePropertyWrapper(property));
-                }
-            }
         }
     }
 }

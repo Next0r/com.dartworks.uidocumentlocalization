@@ -19,8 +19,8 @@ namespace UIDocumentLocalization.Wrappers
         int m_ValueIndex;
 
         public object obj => m_Obj;
-        public StyleValueType valueType => m_ValueType;
-        public int valueIndex => m_ValueIndex;
+        public StyleValueType valueType => (StyleValueType)((int)s_ValueTypePropInfo.GetValue(m_Obj));
+        public int valueIndex => (int)s_ValueIndexFieldInfo.GetValue(m_Obj);
 
         public StyleValueHandleWrapper(object obj)
         {
@@ -35,8 +35,6 @@ namespace UIDocumentLocalization.Wrappers
             }
 
             m_Obj = obj;
-            m_ValueType = (StyleValueType)((int)s_ValueTypePropInfo.GetValue(m_Obj));
-            m_ValueIndex = (int)s_ValueIndexFieldInfo.GetValue(m_Obj);
         }
     }
 }

@@ -16,7 +16,7 @@ namespace UIDocumentLocalization.Wrappers
         InlineRuleWrapper m_InlineRule;
 
         public IStyle obj => m_Obj;
-        public InlineRuleWrapper inlineRule => m_InlineRule;
+        public InlineRuleWrapper inlineRule => new InlineRuleWrapper(s_InlineRuleField.GetValue(m_Obj));
 
         InlineStyleAccessWrapper() { }
 
@@ -33,7 +33,6 @@ namespace UIDocumentLocalization.Wrappers
             }
 
             m_Obj = obj;
-            m_InlineRule = new InlineRuleWrapper(s_InlineRuleField.GetValue(m_Obj));
         }
     }
 }

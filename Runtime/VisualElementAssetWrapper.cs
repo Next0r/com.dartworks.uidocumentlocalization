@@ -24,9 +24,10 @@ namespace UIDocumentLocalization.Wrappers
         int m_Id;
 
         public object obj => m_Obj;
-        public string fullTypeName => m_FullTypeName;
-        public int parentId => m_ParentId;
-        public int id => m_Id;
+        public string fullTypeName => (string)s_FullTypeNameProperty.GetValue(m_Obj);
+        public int parentId => (int)s_ParentIdProperty.GetValue(m_Obj);
+        public int id => (int)s_IdProperty.GetValue(m_Obj);
+        
         public int ruleIndex
         {
             get => (int)s_RuleIndex.GetValue(obj);
@@ -60,9 +61,6 @@ namespace UIDocumentLocalization.Wrappers
             }
 
             m_Obj = obj;
-            m_FullTypeName = (string)s_FullTypeNameProperty.GetValue(obj);
-            m_ParentId = (int)s_ParentIdProperty.GetValue(obj);
-            m_Id = (int)s_IdProperty.GetValue(obj);
         }
 
         public string GetAttributeValue(string attributeName)

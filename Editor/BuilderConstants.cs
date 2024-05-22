@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-#if UNITY_EDITOR
 namespace UIDocumentLocalization
 {
     static class BuilderConstants
@@ -11,4 +10,3 @@ namespace UIDocumentLocalization
         public static readonly string ElementLinkedBelongingVisualTreeAssetVEPropertyName = "__unity-ui-builder-belonging-visual-tree-asset";
     }
 }
-#endif

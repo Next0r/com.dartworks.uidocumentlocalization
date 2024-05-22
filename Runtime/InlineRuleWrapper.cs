@@ -15,12 +15,18 @@ namespace UIDocumentLocalization.Wrappers
         static FieldInfo s_RuleField = type.GetField("rule");
 
         object m_Obj;
-        StyleSheet m_StyleSheet;
-        StyleRuleWrapper m_StyleRule;
 
         public object obj => m_Obj;
-        public StyleSheet styleSheet => m_StyleSheet;
-        public StyleRuleWrapper styleRule => m_StyleRule;
+        public StyleSheet styleSheet => (StyleSheet)s_SheetField.GetValue(obj);
+
+        public StyleRuleWrapper styleRule
+        {
+            get
+            {
+                var wrappedStyleRule = s_RuleField.GetValue(obj);
+                return wrappedStyleRule != null ? new StyleRuleWrapper(s_RuleField.GetValue(obj)) : null;
+            }
+        }
 
         public InlineRuleWrapper(object obj)
         {
@@ -35,11 +41,6 @@ namespace UIDocumentLocalization.Wrappers
             }
 
             m_Obj = obj;
-            m_StyleSheet = (StyleSheet)s_SheetField.GetValue(obj);
-
-            // If visual element has been created from script, it's inline style rule will be null.
-            var wrappedStyleRule = s_RuleField.GetValue(obj);
-            m_StyleRule = wrappedStyleRule != null ? new StyleRuleWrapper(s_RuleField.GetValue(obj)) : null;
         }
     }
 }

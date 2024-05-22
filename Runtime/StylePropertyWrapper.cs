@@ -15,12 +15,24 @@ namespace UIDocumentLocalization.Wrappers
         static PropertyInfo s_NameProperty = type.GetProperty("name");
 
         object m_Obj;
-        List<StyleValueHandleWrapper> m_Values;
-        string m_Name;
 
         public object obj => m_Obj;
-        public List<StyleValueHandleWrapper> values => new List<StyleValueHandleWrapper>(m_Values);
-        public string name => m_Name;
+        
+        public List<StyleValueHandleWrapper> values
+        {
+            get
+            {
+                var values = new List<StyleValueHandleWrapper>();
+                foreach (var element in (Array)s_ValuesProperty.GetValue(obj))
+                {
+                    values.Add(new StyleValueHandleWrapper(element));
+                }
+
+                return values;
+            }
+        }
+
+        public string name => (string)s_NameProperty.GetValue(m_Obj);
 
         public StylePropertyWrapper(object obj)
         {
@@ -35,13 +47,6 @@ namespace UIDocumentLocalization.Wrappers
             }
 
             m_Obj = obj;
-            m_Values = new List<StyleValueHandleWrapper>();
-            foreach (var element in (Array)s_ValuesProperty.GetValue(obj))
-            {
-                m_Values.Add(new StyleValueHandleWrapper(element));
-            }
-
-            m_Name = (string)s_NameProperty.GetValue(m_Obj);
         }
     }
 }
