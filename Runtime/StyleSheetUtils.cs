@@ -14,9 +14,9 @@ namespace UIDocumentLocalization
 
         static MethodInfo s_ReadStringMethod = s_Type.GetMethod("ReadString", BindingFlags.Instance | BindingFlags.NonPublic);
 
-        public static string ReadString(this StyleSheet styleSheet, StyleValueHandleWrapper styleValueHandleWrapper)
+        public static string ReadString(this StyleSheet styleSheet, StyleValueHandleWrapper styleValueHandle)
         {
-            return (string)s_ReadStringMethod.Invoke(styleSheet, new object[] { styleValueHandleWrapper.obj });
+            return (string)s_ReadStringMethod.Invoke(styleSheet, new object[] { styleValueHandle.obj });
         }
     }
 }

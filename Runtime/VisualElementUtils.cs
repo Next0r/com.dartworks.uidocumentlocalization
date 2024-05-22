@@ -266,9 +266,7 @@ namespace UIDocumentLocalization
         public static List<string> GetDescendantGuids(this VisualElement ve)
         {
             var guids = new List<string>();
-            var descendants = ve.Query<VisualElement>().ToList();
-            descendants.Remove(ve);
-            foreach (var descendant in descendants)
+            foreach (var descendant in ve.GetDescendants())
             {
                 string guid = descendant.GetStringStylePropertyByName("guid");
                 if (!string.IsNullOrEmpty(guid))
@@ -357,19 +355,43 @@ namespace UIDocumentLocalization
             }
         }
 
+        /// <summary>
+        /// This method is optimization of GetDescendants() extension method, it's faster
+        /// and allocates less memory. 
+        /// </summary>
         public static int GetDescendantCount(this VisualElement ve)
         {
             int count = 0;
-            GetDescendantElementsRecursive(ve, ref count);
+            GetDescendantCountRecursive(ve, ref count);
             return count;
         }
 
-        static void GetDescendantElementsRecursive(VisualElement ve, ref int count)
+        static void GetDescendantCountRecursive(VisualElement ve, ref int count)
         {
             for (int i = 0; i < ve.hierarchy.childCount; i++)
             {
                 count++;
-                GetDescendantElementsRecursive(ve.hierarchy[i], ref count);
+                GetDescendantCountRecursive(ve.hierarchy[i], ref count);
+            }
+        }
+
+        /// <summary>
+        /// This method is optimization of VisualELement.Query() extension method, it's faster
+        /// and does not include root in output list.
+        /// </summary>
+        public static List<VisualElement> GetDescendants(this VisualElement ve)
+        {
+            var descendants = new List<VisualElement>();
+            GetDescendantsRecursive(ve, descendants);
+            return descendants;
+        }
+
+        static void GetDescendantsRecursive(VisualElement ve, List<VisualElement> elements)
+        {
+            for (int i = 0; i < ve.hierarchy.childCount; i++)
+            {
+                elements.Add(ve.hierarchy[i]);
+                GetDescendantsRecursive(ve.hierarchy[i], elements);
             }
         }
     }

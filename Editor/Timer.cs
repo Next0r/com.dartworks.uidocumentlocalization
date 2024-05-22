@@ -68,14 +68,24 @@ namespace UIDocumentLocalization
                 return;
             }
 
-            onTimeout.Invoke();
-            if (repeat)
+            try
             {
-                m_Time = 0f;
+                onTimeout?.Invoke();
             }
-            else
+            catch (Exception e)
             {
-                Stop();
+                throw e;
+            }
+            finally
+            {
+                if (repeat)
+                {
+                    m_Time = 0f;
+                }
+                else
+                {
+                    Stop();
+                }
             }
         }
     }

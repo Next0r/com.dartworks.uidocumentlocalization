@@ -13,10 +13,16 @@ namespace UIDocumentLocalization.Wrappers
 
         static PropertyInfo s_HasUnsavedChangesProperty = type.GetProperty("hasUnsavedChanges");
         static PropertyInfo s_VisualTreeAssetProperty = type.GetProperty("visualTreeAsset");
+        static PropertyInfo s_ActiveOpenUXMLFile = type.GetProperty("activeOpenUXMLFile");
 
         object m_Obj;
 
         public object obj => m_Obj;
+
+        public BuilderDocumentOpenUXMLWrapper activeOpenUXMLFile
+        {
+            get => new BuilderDocumentOpenUXMLWrapper(s_ActiveOpenUXMLFile.GetValue(m_Obj));
+        }
 
         public bool hasUnsavedChanges
         {

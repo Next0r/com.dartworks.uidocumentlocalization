@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Timers;
+using System.Xml;
 using UIDocumentLocalization.Wrappers;
-using Unity.VisualScripting;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -34,6 +36,8 @@ namespace UIDocumentLocalization
 
         int m_PreviousContentHash;
         List<string> m_DescendantsGuids;
+
+        public Action m_ReimportCallback;
 
         public static BuilderDocumentManager instance
         {
@@ -69,6 +73,7 @@ namespace UIDocumentLocalization
         {
             m_Selection = new Selection();
             m_DescendantsGuids = new List<string>();
+            m_ReimportCallback = OnUxmlImportedAfterSave;
 
             m_VisualTreeAssetUpdateTimer = new Timer(k_VisualTreeAssetUpdateIntervalSec, true);
             m_VisualTreeAssetUpdateTimer.onTimeout += UpdateActiveVisualTreeAsset;
@@ -227,16 +232,71 @@ namespace UIDocumentLocalization
 
         void OnUxmlImported(string path)
         {
-            if (!builderWindowOpened ||
-                m_ActiveVisualTreeAsset.contentHash == m_PreviousContentHash ||
-                AssetDatabase.GetAssetPath(m_ActiveVisualTreeAsset) != path)
+            if (!builderWindowOpened || AssetDatabase.GetAssetPath(m_ActiveVisualTreeAsset) != path)
             {
                 return;
             }
 
-            // Keep track of content hash to avoid infinite asset reimport loop.
-            m_PreviousContentHash = m_ActiveVisualTreeAsset.contentHash;
-            UpdateDatabase();
+            m_ReimportCallback?.Invoke();
+        }
+
+        void OnUxmlImportedAfterSave()
+        {
+            AssignOrUpdateGuids();
+
+            // AssignOrUpdateGuids may not trigger reimport, so just make sure it's queued.
+            AssetDatabase.ImportAsset(AssetDatabase.GetAssetPath(m_ActiveVisualTreeAsset));
+            m_ReimportCallback = OnUxmlImportedAfterGuidsUpdate;
+        }
+
+        void OnUxmlImportedAfterGuidsUpdate()
+        {
+            // Cache selection before contents of document root element are unloaded.
+            var cachedSelection = m_Selection.Store(m_DocumentRootElement);
+
+            var activeWindow = BuilderWrapper.activeWindow;
+
+            // First save unsaved changes to clear document dirty flag and avoid dialog popup on load.
+            activeWindow.document.activeOpenUXMLFile.SaveUnsavedChanges();
+
+            // Execute full document load to sync visual elements styles with data on disk.
+            activeWindow.LoadDocument(m_ActiveVisualTreeAsset);
+
+            // We have to restore selection, because right now it's either empty or contains visual element
+            // references from previous builder state (before document reload). Restore is executed with one frame delay
+            // (next frame + time until inspectors are updated), to allow builder to refresh after loading.
+            var delay = new Delay();
+            delay.onTimeout += () => RestoreSelection(cachedSelection);
+
+            // Now we can update database and remove unused overrides as reading guids will return correct values.
+            LocalizationDataManager.UpdateDatabase(m_DocumentRootElement, m_ActiveVisualTreeAsset);
+            var previousDescendantsGuids = m_DescendantsGuids;
+            m_DescendantsGuids = m_DocumentRootElement.GetDescendantGuids();
+            var removedDescendantGuids = GetRemovedDescendantsGuids(previousDescendantsGuids);
+            LocalizationDataManager.RemoveUnusedOverrides(removedDescendantGuids);
+
+            // Set reimport callback as default.
+            m_ReimportCallback = OnUxmlImportedAfterSave;
+        }
+
+        void RestoreSelection(CachedSelection cachedSelection)
+        {
+            m_Selection.Restore(m_DocumentRootElement, cachedSelection);
+            if (m_Selection.Any())
+            {
+                var ve = m_Selection.Last();
+                var activeWindow = BuilderWrapper.activeWindow;
+                var viewport = activeWindow.viewport;
+
+                // Add element to selection list.
+                activeWindow.selection.Select(viewport, ve);
+
+                // Select element in viewport.
+                viewport.SetInnerSelection(ve);
+
+                // Select element in hierarchy explorer.
+                activeWindow.hierarchy.UpdateHierarchyAndSelection(false);
+            }
         }
 
         public void UpdateDatabase()
@@ -246,13 +306,10 @@ namespace UIDocumentLocalization
                 return;
             }
 
-            AssignOrUpdateGuids();
-            LocalizationDataManager.UpdateDatabase(m_DocumentRootElement, m_ActiveVisualTreeAsset);
+            BuilderWrapper.activeWindow.SaveChanges();
 
-            var previousDescendantsGuids = m_DescendantsGuids;
-            m_DescendantsGuids = m_DocumentRootElement.GetDescendantGuids();
-            var removedDescendantGuids = GetRemovedDescendantsGuids(previousDescendantsGuids);
-            LocalizationDataManager.RemoveUnusedOverrides(removedDescendantGuids);
+            // Save changes may not trigger asset reimport, so just make sure it's queued.
+            AssetDatabase.ImportAsset(AssetDatabase.GetAssetPath(m_ActiveVisualTreeAsset));
         }
 
         List<String> GetRemovedDescendantsGuids(List<string> previousDescendantsGuids)
@@ -269,80 +326,69 @@ namespace UIDocumentLocalization
             return removedDescendantGuids;
         }
 
-        void AssignOrUpdateGuids()
+        int AssignOrUpdateGuids()
         {
-            // We want to restore selection after reloading document. Cache it as it might get
-            // overwritten by selection update.
-            var selection = m_Selection;
-            selection.Store(m_DocumentRootElement);
-            BuilderWrapper activeWindow = BuilderWrapper.activeWindow;
+            var elements = m_DocumentRootElement.GetDescendants();
 
-            // First save changes done to active visual tree asset to avoid 'unsaved changes' popup.
-            activeWindow.SaveChanges();
             List<VisualTreeAsset> visualTreeAssets = new List<VisualTreeAsset>() { m_ActiveVisualTreeAsset };
             visualTreeAssets.AddRange(m_ActiveVisualTreeAsset.templateDependencies);
+
+            int changeCount = 0;
             foreach (var vta in visualTreeAssets)
             {
-                // First load document which inline style sheet will be modified.
-                activeWindow.LoadDocument(vta);
-                List<VisualElementAssetWrapper> visualElementAssets = vta.GetVisualElementAssets();
-                List<TemplateAssetWrapper> templateAssets = vta.GetTemplateAssets();
-                int veaCount = visualElementAssets.Count;
-                int tplCount = templateAssets.Count;
-                for (int i = 0; i < veaCount + tplCount; i++)
+                string path = AssetDatabase.GetAssetPath(vta);
+                if (string.IsNullOrEmpty(path))
                 {
-                    var asset = i < veaCount ? visualElementAssets[i] : templateAssets[i - veaCount];
-                    if (asset.parentId == 0)
+                    Debug.LogWarningFormat("Failed to acquire path for asset '{0}'.", vta);
+                    continue;
+                }
+
+                var document = new XmlDocument();
+                try
+                {
+                    document.Load(path);
+                }
+                catch (Exception)
+                {
+                    Debug.LogWarningFormat("Failed to load document at '{0}'.", path);
+                    continue;
+                }
+
+                foreach (var node in document.GetDescendants())
+                {
+                    if (node.Name == "ui:UXML" || node.Name == "ui:Template" || node.Name == "Style" || node.Name == "AttributeOverrides")
                     {
                         continue;
                     }
 
-                    BuilderStyleSheetUtils.GetInlineStyleSheetAndRule(vta, asset, out StyleSheet styleSheet, out StyleRuleWrapper styleRule);
-                    var styleProperty = BuilderStyleSheetUtils.GetOrCreateStylePropertyByStyleName(styleSheet, styleRule, "guid");
-                    var isNewValue = styleProperty.values.Count == 0;
-
-                    if (isNewValue)
+                    if (node.Attributes["style"] != null)
                     {
-                        styleSheet.AddValue(styleProperty, Guid.NewGuid().ToString("N"));
+                        string guid = node.GetInlineStyleProperty("guid")?.Trim('"');
+                        if (guid == null || !Guid.TryParse(guid, out var result))
+                        {
+                            node.SetInlineStyleProperty("guid", $"\"{Guid.NewGuid().ToString("N")}\"");
+                            changeCount += 1;
+                        }
                     }
                     else
                     {
-                        string currentGuid = styleSheet.GetString(styleProperty.values[0]);
-                        if (!Guid.TryParse(currentGuid, out Guid result))
-                        {
-                            styleSheet.SetValue(styleProperty.values[0], Guid.NewGuid().ToString("N"));
-                        }
+                        node.SetInlineStyleProperty("guid", $"\"{Guid.NewGuid().ToString("N")}\"");
+                        changeCount += 1;
                     }
                 }
 
-                // Save changes made to loaded document.
-                // At this stage style will be correct in inline style sheet scriptable object and UXML file, but not in visual tree asset.
-                activeWindow.SaveChanges();
-            }
-
-            // Load back first document, so sequence does not end up with loaded dependency document.
-            activeWindow.LoadDocument(m_ActiveVisualTreeAsset);
-
-            // Force reimport of UXML assets to reflect inline style in visual element assets of each visual tree asset.
-            foreach (var vta in visualTreeAssets)
-            {
-                string uxmlPath = AssetDatabase.GetAssetPath(vta);
-                AssetDatabase.ImportAsset(uxmlPath, ImportAssetOptions.ForceUpdate);
-            }
-
-            // Selection might only be restored when all asset database operations are finished,
-            // so let's wait one frame.
-            DelayedCall.New(() =>
-            {
-                selection.Restore(m_DocumentRootElement);
-                if (selection.Any())
+                try
                 {
-                    var ve = selection.Last();
-                    var viewport = activeWindow.viewport;
-                    activeWindow.selection.Select(viewport, ve);
-                    viewport.SetInnerSelection(ve);
+                    document.Save(path);
                 }
-            });
+                catch (Exception)
+                {
+                    Debug.LogWarningFormat("Failed to save document at '{0}'.", path);
+                }
+            }
+
+            AssetDatabase.Refresh();
+            return changeCount;
         }
 
         void UpdateDocumentLocalization()

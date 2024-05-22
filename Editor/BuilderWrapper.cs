@@ -44,7 +44,7 @@ namespace UIDocumentLocalization.Wrappers
         public VisualElement documentRootElement => (VisualElement)s_DocumentRootElementProperty.GetValue(m_Obj);
         public BuilderSelectionWrapper selection => new BuilderSelectionWrapper(s_SelectionProperty.GetValue(m_Obj));
         public BuilderViewportWrapper viewport => new BuilderViewportWrapper(s_ViewportProperty.GetValue(m_Obj));
-        public object hierarchy => s_HierarchyProperty.GetValue(m_Obj);
+        public BuilderHierarchyWrapper hierarchy => new BuilderHierarchyWrapper(s_HierarchyProperty.GetValue(m_Obj));
 
         BuilderWrapper(object obj)
         {

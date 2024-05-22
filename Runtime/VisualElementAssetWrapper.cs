@@ -15,6 +15,8 @@ namespace UIDocumentLocalization.Wrappers
         static PropertyInfo s_ParentIdProperty = type.GetProperty("parentId");
         static PropertyInfo s_IdProperty = type.GetProperty("id");
         static MethodInfo s_GetAttributeValueMethod = type.GetMethod("GetAttributeValue");
+        static PropertyInfo s_RuleIndex = type.GetProperty("ruleIndex");
+        static MethodInfo s_SetAttributeMethod = type.GetMethod("SetAttribute");
 
         protected object m_Obj;
         string m_FullTypeName;
@@ -25,6 +27,11 @@ namespace UIDocumentLocalization.Wrappers
         public string fullTypeName => m_FullTypeName;
         public int parentId => m_ParentId;
         public int id => m_Id;
+        public int ruleIndex
+        {
+            get => (int)s_RuleIndex.GetValue(obj);
+            set => s_RuleIndex.SetValue(obj, value);
+        }
 
         public string typeName
         {
@@ -61,6 +68,11 @@ namespace UIDocumentLocalization.Wrappers
         public string GetAttributeValue(string attributeName)
         {
             return (string)s_GetAttributeValueMethod.Invoke(m_Obj, new object[] { attributeName });
+        }
+
+        public void SetAttribute(string name, string value)
+        {
+            s_SetAttributeMethod.Invoke(m_Obj, new object[] { name, value });
         }
     }
 }
