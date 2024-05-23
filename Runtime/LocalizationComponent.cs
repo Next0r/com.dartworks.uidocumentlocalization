@@ -28,7 +28,10 @@ namespace UIDocumentLocalization
 
         void Awake()
         {
-            uiDocument = GetComponent<UIDocument>();
+            if (m_UIDocument == null)
+            {
+                uiDocument = GetComponent<UIDocument>();
+            }
 
 #if UNITY_EDITOR
             EditorUtility.SetDirty(this);   // Serialize component settings in edit mode.

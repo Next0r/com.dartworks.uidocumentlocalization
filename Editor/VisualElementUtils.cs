@@ -27,8 +27,6 @@ namespace UIDocumentLocalization
         /// </summary>
         public static void ResetAttribute(this VisualElement ve, string attributeName)
         {
-            var propertyName = attributeName.Replace("-", string.Empty);
-
             // Element is defined in active document.
             var vea = ve.GetVisualElementAsset();
             if (vea != null)
@@ -36,7 +34,7 @@ namespace UIDocumentLocalization
                 string attributeValue = vea.GetAttributeValue(attributeName);
                 if (attributeValue != null)
                 {
-                    ve.TrySetReflectionProperty(propertyName, attributeValue, caseSensitive: false);
+                    ve.TrySetReflectionProperty(attributeName.ToPropertyName(), attributeValue, caseSensitive: false);
                     return;
                 }
             }
@@ -64,7 +62,7 @@ namespace UIDocumentLocalization
 
                 if (attributeValue != null)
                 {
-                    ve.TrySetReflectionProperty(propertyName, attributeValue, caseSensitive: false);
+                    ve.TrySetReflectionProperty(attributeName.ToPropertyName(), attributeValue, caseSensitive: false);
                     return;
                 }
             }
@@ -83,7 +81,7 @@ namespace UIDocumentLocalization
                         var attributeDescription = (UxmlAttributeDescription)fieldInfo.GetValue(uxmlTraits);
                         if (attributeDescription.name == attributeName)
                         {
-                            ve.TrySetReflectionProperty(propertyName, attributeDescription.defaultValueAsString, caseSensitive: false);
+                            ve.TrySetReflectionProperty(attributeName.ToPropertyName(), attributeDescription.defaultValueAsString, caseSensitive: false);
                             return;
                         }
                     }
