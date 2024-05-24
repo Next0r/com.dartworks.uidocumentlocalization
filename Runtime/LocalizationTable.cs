@@ -192,7 +192,7 @@ namespace UIDocumentLocalization
 
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+            AssetDatabase.ImportAsset(AssetDatabase.GetAssetPath(this));
         }
 
 
