@@ -62,10 +62,6 @@ namespace UIDocumentLocalization
             }
         }
 
-#if UNITY_EDITOR
-        event ReimportCallback m_ReimportCallback;
-#endif
-
         [SerializeField] TextAsset m_TextAsset;
         [SerializeField] int m_ContentHash;
         [SerializeField] List<Entry> m_Entries = new List<Entry>();
@@ -118,11 +114,8 @@ namespace UIDocumentLocalization
         void OnEnable()
         {
             Rebuild();
-            m_ReimportCallback = OnCsvImportedAfterSave;
             TextAssetPostprocessor.onCsvImported += OnCsvImported;
         }
-
-        delegate void ReimportCallback();
 
         void OnCsvImported(string path)
         {
@@ -131,18 +124,7 @@ namespace UIDocumentLocalization
                 return;
             }
 
-            m_ReimportCallback?.Invoke();
-        }
-
-        void OnCsvImportedAfterSave()
-        {
             Rebuild();
-            m_ReimportCallback = OnCsvImportedAfterRebuild;
-        }
-
-        void OnCsvImportedAfterRebuild()
-        {
-            m_ReimportCallback = OnCsvImportedAfterSave;
         }
 
         public void Rebuild()
@@ -190,11 +172,7 @@ namespace UIDocumentLocalization
                 AddEntry(entry);
             }
 
-            EditorApplication.delayCall += () =>
-            {
-                EditorUtility.SetDirty(this);
-                AssetDatabase.SaveAssets();
-            };
+            EditorUtility.SetDirty(this);
         }
 
 
