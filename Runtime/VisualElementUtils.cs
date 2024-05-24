@@ -73,12 +73,23 @@ namespace UIDocumentLocalization
 
         public static void ApplyTranslations(this VisualElement ve, TranslationInfo translationInfo)
         {
+            var elementPropertiesInfo = PropertyTracker.instance.GetOrCreateElementPropertiesInfo(ve);
+
+            // Save use defined values as default ones for tracked properties.
+            elementPropertiesInfo.UpdateTrackedPropertiesDefaultValues();
+
             foreach (var info in translationInfo)
             {
+                elementPropertiesInfo.TryGetTrackedProperty(info.propertyName, out var trackedProperty);
                 if (!string.IsNullOrEmpty(info.translation))
                 {
-                    var propertyInfo = ve.GetType().GetProperty(info.propertyName, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                    propertyInfo.SetValue(ve, info.translation);
+                    // Set property values and save them as localized (applied by localization system).
+                    trackedProperty.Localize(info.translation);
+                }
+                else
+                {
+                    // Restore default value.
+                    trackedProperty.Restore();
                 }
             }
         }
@@ -92,6 +103,9 @@ namespace UIDocumentLocalization
 
         static void GetLocalizableDescendantsRecursive(VisualElement ve, List<VisualElement> elements)
         {
+            // We could use GetLocalizedProperties extension method here, but as reflection is already
+            // quite slow it should be faster to just check type or first occurrence of LocalizeProperty
+            // attribute rather than getting all of them. 
             foreach (VisualElement child in ve.hierarchy.Children())
             {
                 if (child is TextElement)
@@ -184,6 +198,26 @@ namespace UIDocumentLocalization
                 elements.Add(ve.hierarchy[i]);
                 GetDescendantsRecursive(ve.hierarchy[i], elements);
             }
+        }
+
+        public static List<PropertyInfo> GetLocalizedProperties(this VisualElement ve)
+        {
+            var localizedProperties = new List<PropertyInfo>();
+            if (ve is TextElement)
+            {
+                localizedProperties.Add(typeof(TextElement).GetProperty("text"));
+            }
+
+            foreach (var propertyInfo in ve.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+            {
+                if (typeof(string).IsAssignableFrom(propertyInfo.PropertyType) &&
+                    Attribute.IsDefined(propertyInfo, typeof(LocalizeProperty)))
+                {
+                    localizedProperties.Add(propertyInfo);
+                }
+            }
+
+            return localizedProperties;
         }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
@@ -10,6 +11,8 @@ namespace UIDocumentLocalization
     [ExecuteAlways]
     public class LocalizationComponent : MonoBehaviour
     {
+        public event Action onLocalizationStarted;
+
         [SerializeField] UIDocument m_UIDocument;
 
         LocalizationAsyncOperation m_AsyncOperation;
@@ -154,7 +157,9 @@ namespace UIDocumentLocalization
                 m_AsyncOperation.Cancel();
             }
 
+            
             m_AsyncOperation = LocalizationUtility.LocalizeSubTreeAsync(uiDocument.rootVisualElement);
+            onLocalizationStarted?.Invoke();
         }
     }
 }

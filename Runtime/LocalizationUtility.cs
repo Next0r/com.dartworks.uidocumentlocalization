@@ -13,7 +13,7 @@ namespace UIDocumentLocalization
     public class LocalizationUtility
     {
         static int m_OperationsPerBudgetCheck = 1;
-        static float m_timeBudgetMs = 8f;
+        static float m_TimeBudgetMs = 8f;
 
         /// <summary>
         /// Measuring execution time also consumes some frame budget, increasing this value reduces amount of
@@ -30,10 +30,10 @@ namespace UIDocumentLocalization
 
         public static float timeBudgetMs
         {
-            get => m_timeBudgetMs;
+            get => m_TimeBudgetMs;
             set
             {
-                m_timeBudgetMs = Mathf.Max(0f, value);
+                m_TimeBudgetMs = Mathf.Max(0f, value);
             }
         }
 
@@ -46,10 +46,14 @@ namespace UIDocumentLocalization
 
         static async void LocalizeSubTreeAsyncTask(VisualElement subTreeRoot, LocalizationAsyncOperation op)
         {
-            var timeBudgetSec = m_timeBudgetMs / 1000f;
+            // We have to yield at least once, otherwise async operation events might be invoked before
+            // caller manages to register any callbacks.
+            await Task.Yield();
+
+            var timeBudgetSec = m_TimeBudgetMs / 1000f;
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-            // Building a query and turning it into list also costs significant amount of time,
+            // Getting localizable descendants is expensive operation as it looks for property attributes,
             // so it's also included in time budget.
             var localizableDescendants = subTreeRoot.GetLocalizableDescendants();
             if (stopwatch.GetElapsedSeconds() > timeBudgetSec)
@@ -58,24 +62,27 @@ namespace UIDocumentLocalization
                 stopwatch.Restart();
             }
 
-            int processedElements = 0;
-            var localizableToTranslationsDict = new Dictionary<VisualElement, TranslationInfo>();
+            var operationsCount = 0;
+            // We are running through localizables twice, when getting translation info, and when
+            // applying translations. 
+            var maxOperationsCount = localizableDescendants.Count * 2;
+
+            var veTranslationInfos = new Dictionary<VisualElement, TranslationInfo>();
             foreach (var localizableDescendant in localizableDescendants)
             {
                 // We need to check whether text element still exists as loop is being executed asynchronously.
                 if (localizableDescendant != null)
                 {
-                    // string translation = GetTranslations(textElement);
                     var translations = GetTranslations(localizableDescendant);
                     if (translations.Any())
                     {
-                        localizableToTranslationsDict.Add(localizableDescendant, translations);
+                        veTranslationInfos.Add(localizableDescendant, translations);
                     }
                 }
 
-                processedElements += 1;
-                op.progress = ((float)processedElements / localizableDescendants.Count);
-                if (processedElements % m_OperationsPerBudgetCheck != 0)
+                operationsCount += 1;
+                op.progress = (float)operationsCount / (localizableDescendants.Count * 2);
+                if (operationsCount % m_OperationsPerBudgetCheck != 0)
                 {
                     continue;
                 }
@@ -87,16 +94,50 @@ namespace UIDocumentLocalization
                 }
             }
 
-            // Set all text element properties at once to avoid multiple canvas rebuild calls.
-            foreach (var localizableToTranslations in localizableToTranslationsDict)
+            var elementPropertiesInfos = new List<PropertyTracker.ElementPropertiesInfo>();
+            foreach (var veTranslationInfo in veTranslationInfos)
             {
-                var localizableElement = localizableToTranslations.Key;
-                var translations = localizableToTranslations.Value;
+                var visualElement = veTranslationInfo.Key;
 
-                // Once again text element could be removed in 'meantime'.
-                if (localizableElement != null)
+                // Running asynchronously, check whether element is still there.
+                if (visualElement != null)
                 {
-                    localizableElement.ApplyTranslations(translations);
+                    elementPropertiesInfos.Add(PropertyTracker.instance.GetOrCreateElementPropertiesInfo(visualElement));
+                }
+                else
+                {
+                    PropertyTracker.instance.RemoveElementPropertiesInfo(visualElement);
+                }
+
+                operationsCount += 1;
+                op.progress = (float)operationsCount / (localizableDescendants.Count * 2);
+                if (stopwatch.GetElapsedSeconds() > timeBudgetSec)
+                {
+                    await Task.Yield();
+                    stopwatch.Restart();
+                }
+            }
+
+            // This entire part has to be executed synchronously as we don't want to allow user to change
+            // 'default value' of localized property in the meantime, and we don't want to force multiple
+            // layout updates of UI when text properties are changed in different frames.
+            for (int i = 0; i < elementPropertiesInfos.Count; i++)
+            {
+                elementPropertiesInfos[i].UpdateTrackedPropertiesDefaultValues();
+                var translationInfo = veTranslationInfos.Values.ElementAt(i);
+                foreach (var info in translationInfo)
+                {
+                    elementPropertiesInfos[i].TryGetTrackedProperty(info.propertyName, out var trackedProperty);
+                    if (!string.IsNullOrEmpty(info.translation))
+                    {
+                        // Set property values and save them as localized (applied by localization system).
+                        trackedProperty.Localize(info.translation);
+                    }
+                    else
+                    {
+                        // Restore default value.
+                        trackedProperty.Restore();
+                    }
                 }
             }
 

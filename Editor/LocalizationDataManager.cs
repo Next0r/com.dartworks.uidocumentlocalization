@@ -70,23 +70,9 @@ namespace UIDocumentLocalization
 
                 // Update list of properties which should be available for localization.
                 var localizedProperties = new List<LocalizationData.LocalizedProperty>();
-                if (element is TextElement)
+                foreach (var propertyInfo in element.GetLocalizedProperties())
                 {
-                    var localizedProperty = new LocalizationData.LocalizedProperty() { name = "text" };
-                    localizedProperties.Add(localizedProperty);
-                }
-
-                // Custom control might inherit form text element, so always look for properties with
-                // LocalizeProperty attribute defined.
-                var propertyInfos = element.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-                foreach (var propertyInfo in propertyInfos)
-                {
-                    if (typeof(string).IsAssignableFrom(propertyInfo.PropertyType) &&
-                        Attribute.IsDefined(propertyInfo, typeof(LocalizeProperty)))
-                    {
-                        var localizedProperty = new LocalizationData.LocalizedProperty() { name = propertyInfo.Name };
-                        localizedProperties.Add(localizedProperty);
-                    }
+                    localizedProperties.Add(new LocalizationData.LocalizedProperty() { name = propertyInfo.Name });
                 }
 
                 // Here we are removing unused properties and adding new ones to entry.

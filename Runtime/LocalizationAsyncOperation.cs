@@ -8,9 +8,13 @@ namespace UIDocumentLocalization
 {
     public abstract class LocalizationAsyncOperationBase
     {
+        public event ProgressChangedCallback onProgressChanged;
+
         bool m_IsDone;
         float m_Progress;
         bool m_Cancelled;
+
+        public delegate void ProgressChangedCallback(float newProgress);
 
         public bool isDone
         {
@@ -21,7 +25,11 @@ namespace UIDocumentLocalization
         public float progress
         {
             get => m_Progress;
-            internal set => m_Progress = value;
+            internal set
+            {
+                m_Progress = value;
+                onProgressChanged?.Invoke(value);
+            }
         }
 
         public bool cancelled
