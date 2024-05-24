@@ -190,9 +190,11 @@ namespace UIDocumentLocalization
                 AddEntry(entry);
             }
 
-            EditorUtility.SetDirty(this);
-            AssetDatabase.SaveAssets();
-            AssetDatabase.ImportAsset(AssetDatabase.GetAssetPath(this));
+            EditorApplication.delayCall += () =>
+            {
+                EditorUtility.SetDirty(this);
+                AssetDatabase.SaveAssets();
+            };
         }
 
 
