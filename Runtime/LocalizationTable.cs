@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace UIDocumentLocalization
 {
-    public class LocalizationTable : ScriptableObject, ITextAssetPostprocessorListener
+    public class LocalizationTable : ScriptableObject
     {
         static EntryComparer s_EntryComparer = new EntryComparer();
 
@@ -22,7 +22,6 @@ namespace UIDocumentLocalization
         const long k_GetMatchingKeysBudgetMs = 10L;
         const char k_CsvFileCommentChar = '#';
 #endif
-
 
         [Serializable]
         public class Entry
@@ -62,6 +61,10 @@ namespace UIDocumentLocalization
                 return x.key.CompareTo(y.key);
             }
         }
+
+#if UNITY_EDITOR
+        event ReimportCallback m_ReimportCallback;
+#endif
 
         [SerializeField] TextAsset m_TextAsset;
         [SerializeField] int m_ContentHash;
@@ -115,21 +118,31 @@ namespace UIDocumentLocalization
         void OnEnable()
         {
             Rebuild();
-            TextAssetPostprocessor.RegisterListener(this);
+            m_ReimportCallback = OnCsvImportedAfterSave;
+            TextAssetPostprocessor.onCsvImported += OnCsvImported;
         }
 
-        void ITextAssetPostprocessorListener.OnCsvImported(string path)
+        delegate void ReimportCallback();
+
+        void OnCsvImported(string path)
         {
-            if (textAsset == null)
+            if (m_TextAsset == null || AssetDatabase.GetAssetPath(m_TextAsset) != path)
             {
                 return;
             }
 
-            string p = AssetDatabase.GetAssetPath(textAsset);
-            if (p == path)
-            {
-                Rebuild();
-            }
+            m_ReimportCallback?.Invoke();
+        }
+
+        void OnCsvImportedAfterSave()
+        {
+            Rebuild();
+            m_ReimportCallback = OnCsvImportedAfterRebuild;
+        }
+
+        void OnCsvImportedAfterRebuild()
+        {
+            m_ReimportCallback = OnCsvImportedAfterSave;
         }
 
         public void Rebuild()
@@ -179,6 +192,7 @@ namespace UIDocumentLocalization
 
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
 
 
