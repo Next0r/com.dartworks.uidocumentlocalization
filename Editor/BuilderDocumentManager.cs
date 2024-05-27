@@ -268,6 +268,11 @@ namespace UIDocumentLocalization
             var delay = new Delay();
             delay.onTimeout += () => RestoreSelection(cachedSelection);
 
+            // As result of file reimporting, project browser selection might get modified. Here we are 
+            // awaiting until end of this frame for such change to happen. If it does, selection is restored.
+            ProjectSelectionTracker.RegisterCallback(ProjectSelectionTracker.RestoreSelectionWithoutNotify);
+            EditorApplication.delayCall += () => ProjectSelectionTracker.UnregisterCallback(ProjectSelectionTracker.RestoreSelectionWithoutNotify);
+
             // Now we can update database and remove unused overrides as reading guids will return correct values.
             LocalizationDataManager.UpdateDatabase(m_DocumentRootElement, m_ActiveVisualTreeAsset);
             var previousDescendantsGuids = m_DescendantsGuids;
