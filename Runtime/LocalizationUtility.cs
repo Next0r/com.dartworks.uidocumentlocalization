@@ -156,13 +156,22 @@ namespace UIDocumentLocalization
             var database = LocalizationConfigObject.instance.database;
             if (database == null)
             {
-                Debug.LogWarning("Localization failed. Database is missing.");
+                if (Application.isPlaying)
+                {
+                    Debug.LogWarning("Localization failed. Database is missing.");
+                }
+
                 return TranslationInfo.Empty;
             }
 
             if (!visualElement.TryGetGuid(out string guid, out VisualElement ancestor))
             {
-                Debug.LogWarningFormat("Localization failed. '{0}' has no guid assigned.", visualElement.name);
+                if (Application.isPlaying)
+                {
+                    string nameText = string.IsNullOrEmpty(visualElement.name) ? "<unnamed>" : $"'{visualElement.name}'";
+                    Debug.LogWarningFormat("Localization failed. {0} {1} has no guid assigned.", visualElement.GetType().Name, nameText);
+                }
+
                 return TranslationInfo.Empty;
             }
 
@@ -170,7 +179,12 @@ namespace UIDocumentLocalization
             string name = isCustomControlChild ? visualElement.name : string.Empty;
             if (!database.TryGetEntry(guid, out var entry, name))
             {
-                Debug.LogWarningFormat("Localization failed. '{0}' has no corresponding entry in localization database.", visualElement.name);
+                if (Application.isPlaying)
+                {
+                    string nameText = string.IsNullOrEmpty(visualElement.name) ? "<unnamed>" : $"'{visualElement.name}'";
+                    Debug.LogWarningFormat("Localization failed. {0} '{1}' has no corresponding entry in localization database.", visualElement.GetType().Name, visualElement.name);
+                }
+
                 return TranslationInfo.Empty;
             }
 
